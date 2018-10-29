@@ -23,7 +23,7 @@ set.seed(9542) # for reproducibility
 # Make drake plans --------------------------------------------------------
 
 # Process transcriptomes
-transcriptomes_plan_part_1 <- drake_plan(
+transcriptomes_plan <- drake_plan(
   
   # Download transcriptomes
   download = download.file(
@@ -32,20 +32,16 @@ transcriptomes_plan_part_1 <- drake_plan(
   ),
   
   # Downsize transcriptomes
-  downsize = downsize_transcriptome(file = file_in(here::here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")), 
-                                    keep_frac = trim_frac)
-) %>%
-  evaluate_plan(rules = list(transcriptome__ = codes))
-
-# Write out transcriptomes
-transcriptomes_plan_part_2 <- drake_plan(
+  downsize = downsize_transcriptome(
+    file = file_in(here::here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")), 
+    keep_frac = trim_frac),
+  
+  # Write-out transcriptomes
   write = ape::write.FASTA(
     x = downsize_transcriptome__,
-    file = here::here("data/transcriptome__"))) %>%
-  evaluate_plan(rules = list(transcriptome__ = codes)) %>%
-  bind_plans(gather_plan(., target = "final_transcriptomes"))
-
-transcriptomes_plan <- bind_plans(transcriptomes_plan_part_1, transcriptomes_plan_part_2)
+    file = here::here("data/transcriptome__"))
+) %>%
+  evaluate_plan(rules = list(transcriptome__ = codes))
 
 # Process proteomes
 example_proteomes <- drake_plan (
