@@ -20,72 +20,10 @@ codes <- baitfindR::onekp_data$code
 trim_frac <- 0.25
 set.seed(9542) # for reproducibility
 
-# Make drake plans --------------------------------------------------------
-
-# Process transcriptomes
-transcriptomes_plan <- drake_plan(
-  
-  # Download transcriptomes
-  download = download.file(
-    url = "http://206.12.96.204/onekp/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2",
-    destfile = file_out(here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2"))
-  ),
-  
-  # Downsize transcriptomes
-  downsize = downsize_transcriptome(
-    file = file_in(here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")), 
-    keep_frac = trim_frac),
-  
-  # Write-out transcriptomes
-  write = ape::write.FASTA(
-    x = downsize_transcriptome__,
-    file = here("data/transcriptome__"))
-) %>%
-  evaluate_plan(rules = list(transcriptome__ = codes))
-
-# Process proteomes
-example_proteomes <- drake_plan (
-  
-  # Download Lygodium
-  download_lygodium = download.file(
-    url = "http://bioinf.mind.meiji.ac.jp/kanikusa/data/download/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz",
-    destfile = file_out(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz"))),
-  
-  # Unzip Lygodium
-  unzipped_lygodium = untar_tracked(
-    tarfile = file_in(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz")), 
-    compressed = "gzip", 
-    exdir = "data_raw",
-    outfile = file_out(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta"))),
-  
-  # Load lygodium
-  lygodium = read.FASTA(
-    file = file_in(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta")),
-    type = "AA"),
-  
-  # Fix duplicate sequence names in Lygodium
-  trimmed_lygodium = trim_proteome(lygodium),
-  
-  # Download Arabidopsis
-  download_arabidopsis = download.file(
-    url = "https://www.arabidopsis.org/download_files/Sequences/TAIR10_blastsets/TAIR10_pep_20110103_representative_gene_model_updated",
-    destfile = file_out(here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta"))),
-  
-  # Load Arabidopsis
-  arabidopsis = read.FASTA(
-    file = file_in(here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta")),
-    type = "AA"),
-  
-  # Combine and write out
-  combined_proteomes = c(arabidopsis, trimmed_lygodium),
-  
-  write_combined = write.FASTA(
-    x = combined_proteomes, 
-    file = file_out(here("data/arabidopsis_lygodium.fasta")))
-)
+# Make drake plan ---------------------------------------------------------
 
 # Get genomes and annotations
-example_genomes <- drake_plan(
+genomes_data_plan <- drake_plan(
   arabidopsis_gff = download.file(
     url = "ftp://ftp.ensemblgenomes.org/pub/release-40/plants/gff3/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
     destfile = file_out(here("data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz"))
@@ -135,3 +73,82 @@ example_genomes <- drake_plan(
     destfile = file_out(here("data_raw/Salvinia_cucullata.protein.highconfidence_v1.2.fasta"))
   )
 )
+
+# Process transcriptomes
+transcriptomes_data_plan <- drake_plan(
+  
+  # Download transcriptomes
+  download = download.file(
+    url = "http://206.12.96.204/onekp/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2",
+    destfile = file_out(here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2"))
+  ),
+  
+  # Downsize transcriptomes
+  downsize = downsize_transcriptome(
+    file = file_in(here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")), 
+    keep_frac = trim_frac),
+  
+  # Write-out transcriptomes
+  write = ape::write.FASTA(
+    x = downsize_transcriptome__,
+    file = here("data/transcriptome__"))
+) %>%
+  evaluate_plan(rules = list(transcriptome__ = codes))
+
+# Process proteomes
+proteomes_data_plan <- drake_plan (
+  
+  # Download Lygodium
+  download_lygodium = download.file(
+    url = "http://bioinf.mind.meiji.ac.jp/kanikusa/data/download/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz",
+    destfile = file_out(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz"))),
+  
+  # Unzip Lygodium
+  unzipped_lygodium = untar_tracked(
+    tarfile = file_in(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz")), 
+    compressed = "gzip", 
+    exdir = "data_raw",
+    outfile = file_out(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta"))),
+  
+  # Load lygodium
+  lygodium = read.FASTA(
+    file = file_in(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta")),
+    type = "AA"),
+  
+  # Fix duplicate sequence names in Lygodium
+  trimmed_lygodium = trim_proteome(lygodium),
+  
+  # Download Arabidopsis
+  download_arabidopsis = download.file(
+    url = "https://www.arabidopsis.org/download_files/Sequences/TAIR10_blastsets/TAIR10_pep_20110103_representative_gene_model_updated",
+    destfile = file_out(here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta"))),
+  
+  # Load Arabidopsis proteome
+  arabidopsis_to_combine = read.FASTA(
+    file = file_in(here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta")),
+    type = "AA"),
+   
+  # Load Azolla proteome
+  azolla_to_combine = read.FASTA(
+    file = file_in(here("data_raw/Azolla_filiculoides.protein.highconfidence_v1.1.fasta")),
+    type = "AA"),
+  
+  # Load Salvinia proteome
+  salvinia_to_combine = read.FASTA(
+    file = file_in(here("data_raw/Salvinia_cucullata.protein.highconfidence_v1.2.fasta")),
+    type = "AA"),
+  
+  # Combine and write out
+  combined_proteomes = c(arabidopsis_to_combine, 
+                         trimmed_lygodium,
+                         azolla_to_combine,
+                         salvinia_to_combine),
+  
+  write_combined = write.FASTA(
+    x = combined_proteomes, 
+    file = file_out(here("data/combined_proteomes.fasta")))
+)
+
+# Combine into final data plan
+example_data <- bind_plans(genomes_data_plan, transcriptomes_data_plan, proteomes_data_plan)
+rm(genomes_data_plan, transcriptomes_data_plan, proteomes_data_plan)
