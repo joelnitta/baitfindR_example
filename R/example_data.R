@@ -2,14 +2,6 @@
 
 # Download and pre-process raw data for the example.
 
-# Setup drake cache -------------------------------------------------------
-
-if (file.exists(".example_data_cache")) {
-  example_data_cache <- this_cache(".example_data_cache")
-} else {
-  example_data_cache <- new_cache(".example_data_cache")
-}
-
 # Define basic input values -----------------------------------------------
 
 # Vector of 1KP transcriptome codes
