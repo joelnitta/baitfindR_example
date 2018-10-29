@@ -21,20 +21,6 @@ trim_proteome <- function (proteome) {
   return(trimmed_proteome)
 }
 
-# wrapper for write.FASTA with tracking
-write_fasta_tracked <- function (seq, file_name, ...) {
-  ape::write.FASTA(
-    x = seq,
-    file = file_name)
-}
-
-# wrapper for read.FASTA with tracking
-read_fasta_tracked <- function (file_name, type, ...) {
-  ape::read.FASTA(
-    file = file_name,
-    type = type)
-}
-
 # count_seqs
 # Count the number of sequences per alignment in a list of aligments
 # Returns a dataframe of counts: the frequency of alignments containing 
