@@ -28,7 +28,7 @@ transcriptomes_plan_part_1 <- drake_plan(
   # Download transcriptomes
   download = download.file(
     url = "http://206.12.96.204/onekp/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2",
-    destfile = file_out(here::here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")),
+    destfile = file_out(here::here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2"))
   ),
   
   # Downsize transcriptomes
@@ -73,7 +73,7 @@ example_proteomes <- drake_plan (
   # Download Arabidopsis
   download_arabidopsis = download.file(
     url = "https://www.arabidopsis.org/download_files/Sequences/TAIR10_blastsets/TAIR10_pep_20110103_representative_gene_model_updated",
-    destfile = file_out(here::here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta")),
+    destfile = file_out(here::here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta"))),
   
   # Load Arabidopsis
   arabidopsis = read_fasta_tracked(
