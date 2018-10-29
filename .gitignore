@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+.drake
+data_raw/
+data/
+!data_raw/.keep
+!data/.keep
