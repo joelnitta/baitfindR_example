@@ -34,7 +34,7 @@ set.seed(9542) # for reproducibility
 transcriptomes_plan_part_1 <- drake_plan(
   
   # Download transcriptomes
-  download = download_file(
+  download = download.file(
     url = "http://206.12.96.204/onekp/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2",
     destfile = file_out(here::here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")),
   ),
@@ -59,7 +59,7 @@ transcriptomes_plan <- bind_plans(transcriptomes_plan_part_1, transcriptomes_pla
 example_proteomes <- drake_plan (
   
   # Download Lygodium
-  download_lygodium = download_file(
+  download_lygodium = download.file(
     url = "http://bioinf.mind.meiji.ac.jp/kanikusa/data/download/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz",
     destfile = file_out(here::here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz"))),
   
@@ -79,10 +79,9 @@ example_proteomes <- drake_plan (
   trimmed_lygodium = trim_proteome(lygodium),
   
   # Download Arabidopsis
-  download_arabidopsis = download_file(
+  download_arabidopsis = download.file(
     url = "https://www.arabidopsis.org/download_files/Sequences/TAIR10_blastsets/TAIR10_pep_20110103_representative_gene_model_updated",
     destfile = file_out(here::here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta")),
-    depends = trimmed_lygodium),
   
   # Load Arabidopsis
   arabidopsis = read_fasta_tracked(
@@ -99,12 +98,12 @@ example_proteomes <- drake_plan (
 
 # Get genomes and annotations
 example_genomes <- drake_plan(
-  arabidopsis_gff = download_file(
+  arabidopsis_gff = download.file(
     url = "ftp://ftp.ensemblgenomes.org/pub/release-40/plants/gff3/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
     destfile = file_out(here::here("data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz"))
   ),
   
-  arabidopsis_genome = download_file(
+  arabidopsis_genome = download.file(
     url = "ftp://ftp.ensemblgenomes.org/pub/release-40/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz",
     destfile = file_out(here::here("data_raw/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz"))
   ),
@@ -118,22 +117,22 @@ example_genomes <- drake_plan(
     fasta_out = file_out(here::here("data_raw/Arabidopsis_thaliana.TAIR10.dna.toplevel.renamed.fasta"))
   ),
   
-  azolla_gff = download_file(
+  azolla_gff = download.file(
     url = "ftp://ftp.fernbase.org/Azolla_filiculoides/Azolla_asm_v1.1/Azolla_filiculoides.gene_models.highconfidence_v1.1.gff",
     destfile = file_out(here::here("data_raw/Azolla_filiculoides.gene_models.highconfidence_v1.1.gff"))
   ),
   
-  azolla_genome = download_file(
+  azolla_genome = download.file(
     url = "ftp://ftp.fernbase.org/Azolla_filiculoides/Azolla_asm_v1.1/Azolla_filiculoides.genome_v1.2.fasta",
     destfile = file_out(here::here("data_raw/Azolla_filiculoides.genome_v1.2.fasta"))
   ),
   
-  salvinia_gff = download_file(
+  salvinia_gff = download.file(
     url = "ftp://ftp.fernbase.org/Salvinia_cucullata/Salvinia_asm_v1.2/Salvinia_cucullata.gene_models.highconfidence_v1.2.gff",
     destfile = file_out(here::here("data_raw/Salvinia_cucullata.gene_models.highconfidence_v1.2.gff"))
   ),
   
-  salvinia_genome = download_file(
+  salvinia_genome = download.file(
     url = "ftp://ftp.fernbase.org/Salvinia_cucullata/Salvinia_asm_v1.2/Salvinia_cucullata.genome_v1.2.fasta",
     destfile = file_out(here::here("data_raw/Salvinia_cucullata.genome_v1.2.fasta"))
   )

@@ -1,10 +1,5 @@
 # Data import -------------------------------------------------------------
 
-# Download files with extra arguments for tracking
-download_file <- function (url, destfile, ...) {
-  download.file(url, destfile)
-}
-
 # Randomly downsize transcriptome to make smaller dataset for testing
 downsize_transcriptome <- function (file, keep_frac) {
   # Read in file. Use bzfile() because it's compressed
