@@ -1,17 +1,5 @@
 # main_plan
 
-# Define basic input values -----------------------------------------------
-
-# Vector of transcriptome file names ("taxonID" of Y&S).
-# According to Y&S, "Use short taxonIDs with 4-6 letters 
-# and digits with no special characters"
-# (same as those downloaded and pre-processed in data_plan)
-codes <- baitfindR::onekp_data$code
-
-# Values to use for mcl I value and Y&S hit-frac-cutoff
-# These are also used in combination as names of subfolders in clusters/
-my_hit_frac <- 0.4
-my_i_value <- 2
 
 # Make drake plan ---------------------------------------------------------
 

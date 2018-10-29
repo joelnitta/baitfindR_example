@@ -1,17 +1,15 @@
-# baitfindR_drake
+# baitfindR_simple
 
 # An example project showing how baitfindR can be combined with drake to 
 # automate the Yang and Smith (2014) (hereafter, Y&S) workflow to find
 # candidate baits for sequence capture from a set of transcriptomes and 
 # reference genomes.
 
-### Set-up
-
-# Load packages
-source("R/packages.R") 
-
 # Set working directory
 setwd(here::here())
+
+# Load packages
+source("R/packages.R")
 
 # Update drake settings
 pkgconfig::set_config("drake::strings_in_dots" = "literals")
@@ -22,32 +20,31 @@ baitfindR::set_ys_path("/home/phylogenomic_dataset_construction")
 # Load functions
 source("R/functions.R")
 
-# load plans
-source("R/example_data.R")
-source("R/plan_01.R")
-source("R/plan_02.R")
-source("R/plan_03.R")
+### Define basic input values
 
-### Run analyses (adjust number of jobs according to computer hardware)
+# Vector of 4-letter transcriptome codes.
+# These will be downloaded from the 1KP website. 
+# Here we use a subset of eupolypod II ferns including 
+# species in Aspleniaceae, Athyriaceae, and Woodsiaceae
+# as the ingroup, and a single eupolypod I fern as the outgroup
+codes <- baitfindR::onekp_data$code[1:4]
+
+# For the example data, to what fraction should transcriptomes 
+# be down-sized? e.g., 0.05 = 5%
+trim_frac <- 0.05
+set.seed(9542) # for reproducibility
+
+# Values to use for mcl I value and Y&S hit-frac-cutoff
+my_hit_frac <- 0.4
+my_i_value <- 2
+
+### Load and make plans
+
+source("R/example_data.R")
+source("R/main_plan.R")
 
 # Download and pre-process example data
-make(example_data_folders)
-make(example_transcriptomes, cache = example_data_cache)
-make(example_proteomes, cache = example_data_cache)
-make(example_genomes, cache = example_data_cache)
+make(example_data)
 
-# Determine optimal settings for hit_frac_cutoff and i_value
-make(plan_01_folders)
-make(plan_01, cache = plan_01_cache)
-
-# Determine optimal homolog pruning method
-make(plan_02_folders)
-make(plan_02, cache = plan_02_cache)
-
-# Mask introns
-make(plan_03_folders)
-make(plan_03, cache = plan_03_cache)
-
-# Filter final baits
-#make(plan_04_folders)
-#make(plan_04, cache = plan_04_cache)
+# Run analyses
+make(main_plan)

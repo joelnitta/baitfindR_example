@@ -1,29 +1,10 @@
-# example_data
+# example_data.R
 
-# Download and pre-process raw data for the example.
+# A drake plan to download and pre-process data for this example analysis
 
-# Define basic input values -----------------------------------------------
-
-# Vector of 1KP transcriptome codes
-# These will be downloaded from the 1KP website. 
-# Here we use a subset of eupolypod II ferns including 
-# species in Aspleniaceae, Athyriaceae, and Woodsiaceae
-# as the ingroup, and a single eupolypod I fern as the outgroup
-codes <- baitfindR::onekp_data$code
-
-# (Note that the proteomes used for the blastp database are
-# also downloaded, but these don't change much so they are 
-# hard-coded in the drake plan)
-
-# For the example, to what fraction should transcriptomes 
-# be down-sized? e.g., 0.05 = 5%
-trim_frac <- 0.25
-set.seed(9542) # for reproducibility
-
-# Make drake plan ---------------------------------------------------------
-
-# Get genomes and annotations
+# Download genomes and annotations
 genomes_data_plan <- drake_plan(
+  
   arabidopsis_gff = download.file(
     url = "ftp://ftp.ensemblgenomes.org/pub/release-40/plants/gff3/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
     destfile = file_out(here("data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz"))
@@ -53,11 +34,6 @@ genomes_data_plan <- drake_plan(
     destfile = file_out(here("data_raw/Azolla_filiculoides.genome_v1.2.fasta"))
   ),
   
-  azolla_proteome = download.file(
-    url = "ftp://ftp.fernbase.org/Azolla_filiculoides/Azolla_asm_v1.1/Azolla_filiculoides.protein.highconfidence_v1.1.fasta",
-    destfile = file_out(here("data_raw/Azolla_filiculoides.protein.highconfidence_v1.1.fasta"))
-  ),
-  
   salvinia_gff = download.file(
     url = "ftp://ftp.fernbase.org/Salvinia_cucullata/Salvinia_asm_v1.2/Salvinia_cucullata.gene_models.highconfidence_v1.2.gff",
     destfile = file_out(here("data_raw/Salvinia_cucullata.gene_models.highconfidence_v1.2.gff"))
@@ -66,15 +42,12 @@ genomes_data_plan <- drake_plan(
   salvinia_genome = download.file(
     url = "ftp://ftp.fernbase.org/Salvinia_cucullata/Salvinia_asm_v1.2/Salvinia_cucullata.genome_v1.2.fasta",
     destfile = file_out(here("data_raw/Salvinia_cucullata.genome_v1.2.fasta"))
-  ),
-  
-  salvinia_proteome = download.file(
-    url = "ftp://ftp.fernbase.org/Salvinia_cucullata/Salvinia_asm_v1.2/Salvinia_cucullata.protein.highconfidence_v1.2.fasta",
-    destfile = file_out(here("data_raw/Salvinia_cucullata.protein.highconfidence_v1.2.fasta"))
   )
 )
 
-# Process transcriptomes
+# Download and downsize transcriptomes
+# Use wildcard transcriptomes__ to expand 
+# across vector of transcriptome codes.
 transcriptomes_data_plan <- drake_plan(
   
   # Download transcriptomes
@@ -95,30 +68,30 @@ transcriptomes_data_plan <- drake_plan(
 ) %>%
   evaluate_plan(rules = list(transcriptome__ = codes))
 
-# Process proteomes
+# Download and process proteomes
 proteomes_data_plan <- drake_plan (
   
-  # Download Lygodium
+  # Download Lygodium proteome
   download_lygodium = download.file(
     url = "http://bioinf.mind.meiji.ac.jp/kanikusa/data/download/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz",
     destfile = file_out(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz"))),
   
-  # Unzip Lygodium
+  # Unzip Lygodium proteome
   unzipped_lygodium = untar_tracked(
     tarfile = file_in(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta.tar.gz")), 
     compressed = "gzip", 
     exdir = "data_raw",
     outfile = file_out(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta"))),
   
-  # Load lygodium
+  # Load Lygodium proteome
   lygodium = read.FASTA(
     file = file_in(here("data_raw/lygodium_predicted_potein_ver1.0RC.fasta")),
     type = "AA"),
   
-  # Fix duplicate sequence names in Lygodium
+  # Fix duplicate sequence names in Lygodium proteome
   trimmed_lygodium = trim_proteome(lygodium),
   
-  # Download Arabidopsis
+  # Download Arabidopsis proteome
   download_arabidopsis = download.file(
     url = "https://www.arabidopsis.org/download_files/Sequences/TAIR10_blastsets/TAIR10_pep_20110103_representative_gene_model_updated",
     destfile = file_out(here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta"))),
@@ -127,18 +100,30 @@ proteomes_data_plan <- drake_plan (
   arabidopsis_to_combine = read.FASTA(
     file = file_in(here("data_raw/TAIR10_pep_20110103_representative_gene_model_updated.fasta")),
     type = "AA"),
+  
+  # Download Azolla proteome
+  azolla_proteome = download.file(
+    url = "ftp://ftp.fernbase.org/Azolla_filiculoides/Azolla_asm_v1.1/Azolla_filiculoides.protein.highconfidence_v1.1.fasta",
+    destfile = file_out(here("data_raw/Azolla_filiculoides.protein.highconfidence_v1.1.fasta"))
+  ),
    
   # Load Azolla proteome
   azolla_to_combine = read.FASTA(
     file = file_in(here("data_raw/Azolla_filiculoides.protein.highconfidence_v1.1.fasta")),
     type = "AA"),
   
+  # Download Salvinia proteome
+  salvinia_proteome = download.file(
+    url = "ftp://ftp.fernbase.org/Salvinia_cucullata/Salvinia_asm_v1.2/Salvinia_cucullata.protein.highconfidence_v1.2.fasta",
+    destfile = file_out(here("data_raw/Salvinia_cucullata.protein.highconfidence_v1.2.fasta"))
+  ),
+  
   # Load Salvinia proteome
   salvinia_to_combine = read.FASTA(
     file = file_in(here("data_raw/Salvinia_cucullata.protein.highconfidence_v1.2.fasta")),
     type = "AA"),
   
-  # Combine and write out
+  # Combine and write out proteomes
   combined_proteomes = c(arabidopsis_to_combine, 
                          trimmed_lygodium,
                          azolla_to_combine,
