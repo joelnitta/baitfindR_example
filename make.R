@@ -27,11 +27,11 @@ source("R/functions.R")
 # Here we use a subset of eupolypod II ferns including 
 # species in Aspleniaceae, Athyriaceae, and Woodsiaceae
 # as the ingroup, and a single eupolypod I fern as the outgroup
-codes <- baitfindR::onekp_data$code[1:4]
+codes <- baitfindR::onekp_data$code
 
 # For the example data, to what fraction should transcriptomes 
 # be down-sized? e.g., 0.05 = 5%
-trim_frac <- 0.05
+trim_frac <- 0.25
 set.seed(9542) # for reproducibility
 
 # Values to use for mcl I value and Y&S hit-frac-cutoff
@@ -47,4 +47,4 @@ source("R/main_plan.R")
 make(example_data)
 
 # Run analyses
-make(main_plan)
+make(main_plan, jobs = 4)

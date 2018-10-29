@@ -1,8 +1,5 @@
 # main_plan
 
-
-# Make drake plan ---------------------------------------------------------
-
 # Make blast protein db from combined Arabidopsis, Azolla, Lygodium, 
 # and Salvinia proteomes.
 # Blast databases include multiple files. Arbitrarily choose .phr as output 
@@ -33,7 +30,7 @@ run_transdecoder <- drake_plan(
   # Blast candidate long ORFs against the protein database
   orf_blast = baitfindR::blast_p(
     query = file_in(here("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep")), 
-    database = here("01_translation/arabidopsis_lygodium"),
+    database = here("01_translation/combined_proteomes"),
     # set infile to blast db .phr file to maintain dependency on blast db
     depends = file_in(here("01_translation/combined_proteomes.phr")),
     other_args = c("-max_target_seqs 1", "-evalue 10",  "-num_threads 2"),
@@ -148,7 +145,7 @@ run_mcl <- drake_plan (
   
   # Write fasta files for each cluster from mcl output to clusters/
   fasta_clusters = baitfindR::write_fasta_files_from_mcl(
-    all_fasta = file_in(here("02_clustering/all.fa")),
+    all_fasta = file_in(here("02_clustering/all_orfs.fa")),
     mcl_outfile = file_in(here(glue("02_clustering/hit-frac{my_hit_frac}_I{my_i_value}_e5"))),
     minimal_taxa = 4,
     outdir = here("03_clusters"),
@@ -175,6 +172,6 @@ run_mcl <- drake_plan (
 #     output_file = file_out("report_01.html"), 
 #     quiet = TRUE))
 
-plan_01 <- bind_plans(build_blastp_db, run_transdecoder, concatenate_cdhitest, run_allbyall_blast, concatenate_allbyall_blast, run_mcl)
+main_plan <- bind_plans(build_blastp_db, run_transdecoder, concatenate_cdhitest, run_allbyall_blast, concatenate_allbyall_blast, run_mcl)
 
 rm(build_blastp_db, run_transdecoder, concatenate_cdhitest, run_allbyall_blast, concatenate_allbyall_blast, run_mcl)
