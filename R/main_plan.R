@@ -15,16 +15,16 @@ i_value_list <- c(1.4, 2)
 
 # Make drake plan ---------------------------------------------------------
 
-# Make blast protein db
+# Make blast protein db from combined Arabidopsis, Azolla, Lygodium, and Salvinia proteomes
 # Blast databases include multiple files. Arbitrarily choose .phr as output 
 # file for tracking.
 build_blastp_db <- drake_plan(
   blastp_database = baitfindR::build_blast_db(
-    in_seqs = file_in(here::here("data/arabidopsis_lygodium.fasta")), 
-    out_name = here::here("01_translation/arabidopsis_lygodium"), 
+    in_seqs = file_in(here::here("data/combined_proteomes.fasta")), 
+    out_name = here::here("01_translation/combined_proteomes"), 
     db_type = "prot", 
     other_args = "-parse_seqids",
-    outfile = file_out(here::here("01_translation/arabidopsis_lygodium.phr"))
+    outfile = file_out(here::here("01_translation/combined_proteomes.phr"))
   )
 )
 
@@ -39,7 +39,7 @@ run_transdecoder <- drake_plan(
     wd = here::here("01_translation"),
     other_args = "-S",
     # set infile to blast db .phr file to maintain dependency on blast db
-    depends = file_in(here::here("01_translation/arabidopsis_lygodium.phr")),
+    depends = file_in(here::here("01_translation/combined_proteomes.phr")),
     outfile = file_out(here::here("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep"))),
   
   # Blast candidate long ORFs against the protein database
