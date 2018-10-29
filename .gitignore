@@ -5,5 +5,12 @@
 .drake
 data_raw/
 data/
+01_translation/
+02_clustering/
+03_clusters/
 !data_raw/.keep
 !data/.keep
+!01_translation/.keep
+!02_clustering/.keep
+!03_clusters/.keep
+
