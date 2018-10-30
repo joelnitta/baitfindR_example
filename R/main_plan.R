@@ -163,7 +163,110 @@ run_mcl <- drake_plan (
     get_hash = TRUE,
     infile = fasta_clusters)
 )
+
+#### START PLAN02 HERE
+
+# Make homolog trees
+make_homologs <- drake_plan(
   
+  trimmed_trees = trim_tips(
+    tree_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")), 
+    tree_file_ending = ".tre",
+    relative_cutoff = 0.2,
+    absolute_cutoff = 0.4, 
+    overwrite = TRUE), 
+  
+  masked_trees = mask_tips_by_taxonID_transcripts(
+    tree_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")),
+    aln_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")),
+    depends = trimmed_trees),
+  
+  homolog_trees = cut_long_internal_branches( 
+    tree_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")),
+    tree_file_ending = ".mm",
+    internal_branch_length_cutoff = 0.3,
+    minimal_taxa = 4,
+    outdir = here::here("homologs/"),
+    depends = masked_trees),
+  
+  homolog_seqs = write_fasta_files_from_trees(
+    all_fasta = here::here("clustering/all.fa"),
+    tree_folder = here::here("homologs"),
+    tree_file_ending = ".subtree",
+    outdir = here::here("homologs"),
+    depends = homolog_trees),
+  
+  homolog_clean_trees = fasta_to_tree(
+    seq_folder = here::here("homologs"),
+    number_cores = 1,
+    seq_type = "dna",
+    bootstrap = FALSE,
+    overwrite = TRUE,
+    depends = homolog_seqs)
+)
+
+# Run each pruning method
+prune_paralogs <- drake_plan(
+  
+  ortho_121_trees = filter_1to1_orthologs(
+    tree_folder = here::here("homologs"), 
+    tree_file_ending = ".tre",
+    minimal_taxa = 3,
+    outdir = here::here("ortho_121/tre"),
+    overwrite = TRUE,
+    depends = homolog_clean_trees), 
+  
+  ortho_MI_trees = prune_paralogs_MI( 
+    tree_folder = here::here("homologs"), 
+    tree_file_ending = ".tre", 
+    relative_cutoff = 0.2,
+    absolute_cutoff = 0.4,
+    minimal_taxa = 3,
+    outdir = here::here("ortho_MI/tre/"),
+    overwrite = TRUE,
+    depends = homolog_clean_trees),
+  
+  ortho_MO_trees = prune_paralogs_MO(
+    tree_folder = here::here("homologs"), 
+    tree_file_ending = ".tre",
+    ingroup = my_ingroup,
+    outgroup = my_outgroup,
+    outdir = here::here("ortho_MO/tre/"),
+    overwrite = TRUE,
+    depends = homolog_clean_trees),
+  
+  ortho_RT_trees = prune_paralogs_RT(
+    tree_folder = here::here("homologs"), 
+    tree_file_ending = ".tre",
+    ingroup = my_ingroup,
+    outgroup = my_outgroup,
+    min_ingroup_taxa = 2,
+    overwrite = TRUE,
+    outdir = here::here("ortho_RT/tre/"),
+    depends = homolog_clean_trees)
+)
+
+# write out orthologs
+write_orthologs <- drake_plan(
+  fasta = write_ortholog_fasta_files( 
+    all_fasta = file_in(here::here("clustering/all.fa")),
+    tree_folder = here::here("prune.method/tre"),
+    outdir = here::here("prune.method/fasta"),
+    minimal_taxa = 3,
+    overwrite = TRUE,
+    depends = prune.method_trees)) %>%
+  evaluate_plan(rules = list(prune.method = prune_methods))
+
+# count number of ingroup sequences per pruning method
+count_filtered_orthologs <- drake_plan(
+  filtered = filter_fasta(seq_folder = here::here("prune.method/fasta"),
+                          taxonomy_data = onekp_data,
+                          min_taxa = 3,
+                          sample_col = "code",
+                                     depends = fasta_prune.method)) %>%
+  evaluate_plan(rules = list(prune.method = prune_methods))
+
+
 # output report
 # report_plan <- drake_plan(
 #   rmarkdown::render(
