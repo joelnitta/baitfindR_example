@@ -127,14 +127,14 @@ concatenate_allbyall_blast <-
 # Filter raw blast output by hit fraction, run mcl, and write out as fasta files
 run_mcl <- drake_plan (
   
-  # prepare all by all blast results for mcl
+  # Prepare all by all blast results for mcl
   blast_formatted_for_mcl = baitfindR::blast_to_mcl(
     blast_results = file_in(here("02_clustering/all.rawblast")),
     hit_fraction_cutoff = my_hit_frac,
     outfile = file_out(here(glue("02_clustering/all.rawblast.hit-frac{my_hit_frac}.minusLogEvalue")))
     ),
   
-  # run mcl
+  # Run mcl
   mcl_clusters = baitfindR::mcl(
     mcl_input = file_in(here(glue("02_clustering/all.rawblast.hit-frac{my_hit_frac}.minusLogEvalue"))),
     i_value = my_i_value,
@@ -143,7 +143,7 @@ run_mcl <- drake_plan (
     mcl_output = file_out(here(glue("02_clustering/hit-frac{my_hit_frac}_I{my_i_value}_e5")))
     ),
   
-  # Write fasta files for each cluster from mcl output to clusters/
+  # Write fasta files for each cluster from mcl output to 03_clusters/
   fasta_clusters = baitfindR::write_fasta_files_from_mcl(
     all_fasta = file_in(here("02_clustering/all_orfs.fa")),
     mcl_outfile = file_in(here(glue("02_clustering/hit-frac{my_hit_frac}_I{my_i_value}_e5"))),
@@ -153,7 +153,8 @@ run_mcl <- drake_plan (
     overwrite = TRUE
     ), 
 
-  # Align each cluster, trim alignment, and infer a tree ("basic trees" which be further pruned downstream)
+  # Align each cluster, trim alignment, and infer a tree
+  # ("basic trees" which will be further pruned downstream)
   basic_trees = baitfindR::fasta_to_tree(
     overwrite = TRUE,
     seq_folder = here("03_clusters/"),
@@ -170,102 +171,66 @@ run_mcl <- drake_plan (
 make_homologs <- drake_plan(
   
   trimmed_trees = trim_tips(
-    tree_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")), 
+    tree_folder = here("03_clusters"), 
     tree_file_ending = ".tre",
     relative_cutoff = 0.2,
     absolute_cutoff = 0.4, 
     overwrite = TRUE), 
   
   masked_trees = mask_tips_by_taxonID_transcripts(
-    tree_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")),
-    aln_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")),
+    tree_folder = here("03_clusters"),
+    aln_folder = here("03_clusters"),
     depends = trimmed_trees),
   
   homolog_trees = cut_long_internal_branches( 
-    tree_folder = here::here(paste0("clusters/hit-frac", my_hit_frac, "_I", my_i_value, "_e5/")),
+    tree_folder = here("03_clusters/"),
     tree_file_ending = ".mm",
     internal_branch_length_cutoff = 0.3,
     minimal_taxa = 4,
-    outdir = here::here("homologs/"),
+    outdir = here::here("04_homologs/"),
     depends = masked_trees),
   
   homolog_seqs = write_fasta_files_from_trees(
-    all_fasta = here::here("clustering/all.fa"),
-    tree_folder = here::here("homologs"),
+    all_fasta = here::here("02_clustering/all_orfs.fa"),
+    tree_folder = here::here("04_homologs"),
     tree_file_ending = ".subtree",
-    outdir = here::here("homologs"),
+    outdir = here::here("04_homologs"),
     depends = homolog_trees),
   
   homolog_clean_trees = fasta_to_tree(
-    seq_folder = here::here("homologs"),
+    seq_folder = here::here("04_homologs"),
     number_cores = 1,
     seq_type = "dna",
     bootstrap = FALSE,
     overwrite = TRUE,
-    depends = homolog_seqs)
-)
-
-# Run each pruning method
-prune_paralogs <- drake_plan(
+    depends = homolog_seqs),
   
+  # Prune orthologs using "1-to-1" method
   ortho_121_trees = filter_1to1_orthologs(
-    tree_folder = here::here("homologs"), 
+    tree_folder = here::here("04_homologs"), 
     tree_file_ending = ".tre",
     minimal_taxa = 3,
-    outdir = here::here("ortho_121/tre"),
+    outdir = here::here("05_orthologs/tre"),
     overwrite = TRUE,
     depends = homolog_clean_trees), 
   
-  ortho_MI_trees = prune_paralogs_MI( 
-    tree_folder = here::here("homologs"), 
-    tree_file_ending = ".tre", 
-    relative_cutoff = 0.2,
-    absolute_cutoff = 0.4,
+  # Write out orthologs
+  ortholog_fasta = write_ortholog_fasta_files( 
+    all_fasta = file_in(here::here("02_clustering/all_orfs.fa")),
+    tree_folder = here::here("05_orthologs/tre"),
+    outdir = here::here("05_orthologs/fasta"),
     minimal_taxa = 3,
-    outdir = here::here("ortho_MI/tre/"),
     overwrite = TRUE,
-    depends = homolog_clean_trees),
+    depends = ortho_121_trees),
   
-  ortho_MO_trees = prune_paralogs_MO(
-    tree_folder = here::here("homologs"), 
-    tree_file_ending = ".tre",
-    ingroup = my_ingroup,
-    outgroup = my_outgroup,
-    outdir = here::here("ortho_MO/tre/"),
-    overwrite = TRUE,
-    depends = homolog_clean_trees),
-  
-  ortho_RT_trees = prune_paralogs_RT(
-    tree_folder = here::here("homologs"), 
-    tree_file_ending = ".tre",
-    ingroup = my_ingroup,
-    outgroup = my_outgroup,
-    min_ingroup_taxa = 2,
-    overwrite = TRUE,
-    outdir = here::here("ortho_RT/tre/"),
-    depends = homolog_clean_trees)
+  # Count number of ingroup sequences per pruning method
+  filtered = filter_fasta(
+    seq_folder = here::here("05_orthologs/fasta"),
+    taxonomy_data = onekp_data,
+    min_taxa = 3,
+    sample_col = "code",
+    depends = ortholog_fasta)
 )
-
-# write out orthologs
-write_orthologs <- drake_plan(
-  fasta = write_ortholog_fasta_files( 
-    all_fasta = file_in(here::here("clustering/all.fa")),
-    tree_folder = here::here("prune.method/tre"),
-    outdir = here::here("prune.method/fasta"),
-    minimal_taxa = 3,
-    overwrite = TRUE,
-    depends = prune.method_trees)) %>%
-  evaluate_plan(rules = list(prune.method = prune_methods))
-
-# count number of ingroup sequences per pruning method
-count_filtered_orthologs <- drake_plan(
-  filtered = filter_fasta(seq_folder = here::here("prune.method/fasta"),
-                          taxonomy_data = onekp_data,
-                          min_taxa = 3,
-                          sample_col = "code",
-                                     depends = fasta_prune.method)) %>%
-  evaluate_plan(rules = list(prune.method = prune_methods))
-
 
 # output report
 # report_plan <- drake_plan(
