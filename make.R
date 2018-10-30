@@ -38,6 +38,9 @@ set.seed(9542) # for reproducibility
 my_hit_frac <- 0.4
 my_i_value <- 2
 
+# Vector of reference genomes to use for making masked blast db
+genomes <- c("arabidopsis", "azolla", "salvinia")
+
 ### Load and make plans
 
 source("R/example_data.R")
