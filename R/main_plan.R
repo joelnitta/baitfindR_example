@@ -1,9 +1,11 @@
 # main_plan
 
-# Make blast protein db from combined Arabidopsis, Azolla, Lygodium, 
-# and Salvinia proteomes.
-# Blast databases include multiple files. Arbitrarily choose .phr as output 
-# file for tracking.
+# 01_translation ----------------------------------------------------------
+
+# Build blast protein database including combined Arabidopsis, Azolla, 
+# Lygodium, and Salvinia proteomes.
+# Blast databases comprise multiple files, so arbitrarily choose .phr 
+# as output file for tracking.
 build_blastp_db <- drake_plan(
   blastp_database = baitfindR::build_blast_db(
     in_seqs = file_in(here("data/combined_proteomes.fasta")), 
@@ -18,12 +20,14 @@ build_blastp_db <- drake_plan(
 run_transdecoder <- drake_plan(
   
   # Find candidate long ORFs (long open reading frames) in transcriptomes.
-  # TransDecoder.LongOrfs outputs multiple files to .transdecoder_dir folder.
+  # TransDecoder.LongOrfs outputs multiple files to .transdecoder_dir 
+  # folder.
   # Use longest_orfs.pep as representative output file for tracking.
   longest_orfs = baitfindR::transdecoder_long_orfs(
     transcriptome_file = file_in(here("data/transcriptome__")),
     wd = here("01_translation"),
     other_args = "-S",
+    depends = file_in(here("01_translation/combined_proteomes.phr")),
     outfile = file_out(here("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep"))
   ),
   
@@ -31,8 +35,6 @@ run_transdecoder <- drake_plan(
   orf_blast = baitfindR::blast_p(
     query = file_in(here("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep")), 
     database = here("01_translation/combined_proteomes"),
-    # set infile to blast db .phr file to maintain dependency on blast db
-    depends = file_in(here("01_translation/combined_proteomes.phr")),
     other_args = c("-max_target_seqs 1", "-evalue 10",  "-num_threads 2"),
     out_file = file_out(here("01_translation/transcriptome__.blastp.outfmt6"))
   ),
@@ -47,7 +49,7 @@ run_transdecoder <- drake_plan(
   ),
   
   # Shorten names from transdecoder using R function
-  # Y&S function worked on whole folder, so not conducive to drake.
+  # Y&S function works on whole folder, so not conducive to drake.
   # baitfindR function works on single file (transcriptome) at a time.
   seq_with_short_names = baitfindR::fix_names_from_transdecoder(
     transdecoder_output = file_in(here("01_translation/transcriptome__.transdecoder.cds"))
@@ -69,6 +71,8 @@ run_transdecoder <- drake_plan(
 ) %>%
   evaluate_plan(rules = list(transcriptome__ = codes))
 
+# 02_clustering, 03_clusters ----------------------------------------------
+
 # Concatenate all the .cdhitest files into a new file all_orfs.fa
 concatenate_cdhitest <- 
   drake_plan(
@@ -85,7 +89,7 @@ concatenate_cdhitest <-
     )
   )
 
-# All-by-all blast: make database and run blast on one transcriptome at a time
+# Make database from ORFs, and run blast on one transcriptome at a time.
 run_allbyall_blast <- drake_plan(
   
   # Make all-by-all database including all ORFs
@@ -108,7 +112,7 @@ run_allbyall_blast <- drake_plan(
 ) %>% 
   evaluate_plan(rules = list(transcriptome__ = codes))
 
-# All-by-all blast: concatenate output of single blast results
+# Concatenate output of single blast results
 concatenate_allbyall_blast <- 
   drake_plan(
     read_blast = readr::read_file(file_in(here("02_clustering/transcriptome__.allbyall.blast.outfmt6")))
@@ -125,7 +129,7 @@ concatenate_allbyall_blast <-
   )
 
 # Filter raw blast output by hit fraction, run mcl, 
-# and write out as fasta files
+# and write out as fasta files.
 run_mcl <- drake_plan (
   
   # Prepare all by all blast results for mcl
@@ -166,7 +170,9 @@ run_mcl <- drake_plan (
     infile = fasta_clusters)
 )
 
-# Identify homologs and orthologs
+# 04_homologs, 05_orthologs -----------------------------------------------
+
+# Identify homologs and orthologs, write out orthologs (baits)
 sort_homologs_orthologs <- drake_plan(
   
   # Trip extremely long tips from tree
@@ -228,12 +234,12 @@ sort_homologs_orthologs <- drake_plan(
     minimal_taxa = 3,
     overwrite = TRUE,
     depends = ortho_121_trees)
-  
 )
 
-### Make intron-masked blast DB
+# 06_intron_masking -------------------------------------------------------
+
 # Generate fasta files of intron-masked genes 
-# from reference genomes
+# from reference genomes.
 mask_genes <- drake_plan (
   
   # Find introns in reference genomes
@@ -300,8 +306,8 @@ make_masked_genes_blast_db <- drake_plan(
     outfile = file_out(here::here("06_intron_masking/masked_genes.nhr")))
 )
 
-### Mask introns in baits
-mask_baits <- drake_plan (
+# Mask introns in baits, filter final baits
+mask_and_filter_baits <- drake_plan (
   
   # Filter baits by family
   # (each alignment must contain at least
@@ -394,7 +400,7 @@ main_plan <- bind_plans(build_blastp_db,
                         mask_genes,
                         concatenate_masked_genes,
                         make_masked_genes_blast_db,
-                        mask_baits)
+                        mask_and_filter_baits)
 
 rm(build_blastp_db, 
     run_transdecoder, 
@@ -406,4 +412,4 @@ rm(build_blastp_db,
     mask_genes,
     concatenate_masked_genes,
     make_masked_genes_blast_db,
-    mask_baits)
+    mask_and_filter_baits)
