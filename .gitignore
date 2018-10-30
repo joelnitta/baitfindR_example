@@ -9,9 +9,13 @@ data/
 02_clustering/
 03_clusters/
 04_homologs/
+05_orthologs/
 !data_raw/.keep
 !data/.keep
 !01_translation/.keep
 !02_clustering/.keep
 !03_clusters/.keep
 !04_homologs/.keep
+!05_orthologs/fasta/.keep
+!05_orthologs/tre/.keep
+
