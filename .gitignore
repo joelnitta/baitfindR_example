@@ -10,6 +10,7 @@ data/
 03_clusters/
 04_homologs/
 05_orthologs/
+06_intron_masking/
 !data_raw/.keep
 !data/.keep
 !01_translation/.keep
@@ -18,4 +19,6 @@ data/
 !04_homologs/.keep
 !05_orthologs/fasta/.keep
 !05_orthologs/tre/.keep
+!06_intron_masking/taxonomy_filtered/.keep
+!06_intron_masking/blast_filtered/.keep
 
