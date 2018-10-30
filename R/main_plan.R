@@ -378,8 +378,11 @@ mask_and_filter_baits <- drake_plan (
   # Filter alignments to get final baits
   final_baits_data = filter_alignments (combined_alignments_data),
   
-  final_baits = pull(final_baits_data, alignment)
-  
+  # Write out final baits
+  final_baits_out = write_fasta_files(
+    fasta_list = final_baits_data$alignment,
+    out_dir = here::here("07_baits"))
+
 )
 
 # output report
