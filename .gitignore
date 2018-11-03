@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .drake
+*.html
 data_raw/
 data/
 01_translation/
