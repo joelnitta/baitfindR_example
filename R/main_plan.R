@@ -381,6 +381,8 @@ mask_and_filter_baits <- drake_plan (
   # Write out final baits
   final_baits_out = write_fasta_files(
     fasta_list = final_baits_data$alignment,
+    fasta_names = final_baits_data$bait_id,
+    suffix = ".fasta",
     out_dir = here::here("07_baits"))
 
 )
