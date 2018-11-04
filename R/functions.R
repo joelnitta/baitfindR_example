@@ -377,29 +377,37 @@ write_fasta_files <- function (fasta_list, fasta_names = NULL, out_dir,
 
 # Re-align filtered baits with top blast hits
 # returns list of alignments
-realign_with_best_hits <- function (blast_filtered_folder, taxonomy_filtered_folder, ...) {
+realign_with_best_hits <- function (blast_filtered_folder, 
+                                    taxonomy_filtered_folder, ...) {
   
   blast_filtered_folder <- jntools::add_slash(blast_filtered_folder)
   taxonomy_filtered_folder <- jntools::add_slash(taxonomy_filtered_folder)
+
+  # Get names of fasta files of top blast hits (already 1 per alignment)
+  blast_top_match_names <- 
+    list.files(blast_filtered_folder, pattern = "bestmatch")
   
+  # Make vector of shortened names (alignment number and ortho pruning method)
+  # to use for alignments
+  blast_filtered_alignment_names <- 
+    gsub("\\.fa.*$", "", blast_top_match_names)
+  
+  # Read in blast-filtered alignments (those with blast hits).
   blast_filtered_alignments <- 
-    # get names of alignments with blast hits
-    list.files(blast_filtered_folder, pattern = "bestmatch") %>%
+    blast_top_match_names %>%
     gsub(".outfmt6.bestmatch.fasta", "", ., fixed = TRUE) %>%
-    # read in alignments
-    paste0(taxonomy_filtered_folder, .) %>%
+    paste(taxonomy_filtered_folder, ., sep ="") %>%
     map(ape::read.FASTA)
   
+  # Read in seqs of top blast hits
   blast_top_matches <- 
-    # get names of top blast hits
-    list.files(blast_filtered_folder, pattern = "bestmatch") %>%
-    # read in seqs
-    paste0(blast_filtered_folder, .) %>%
+    paste0(blast_filtered_folder, blast_top_match_names, sep ="") %>%
     map(ape::read.FASTA)
   
   # combine and re-align blast-filtered alignments with their top matches
   map2(blast_filtered_alignments, blast_top_matches, c) %>%
-    map(ips::mafft, path = "/usr/bin/mafft", options = "--adjustdirection")
+    map(ips::mafft, path = "/usr/bin/mafft", options = "--adjustdirection") %>%
+    rlang::set_names(blast_filtered_alignment_names)
 }
 
 # Run blast on all files with the same ending in a folder
@@ -580,8 +588,8 @@ fill_introns_loop <- function (alignment_list, outgroup, ...) {
 # Create a dataframe of alignment stats, including
 # the alignments as a list-column
 assemble_bait_data <- function (alignment_list) {
-  map_df(alignment_list, baitfindR::calculate_alignment_stats) %>%
-    mutate(alignment = alignment_list)
+  map_df(alignment_list, baitfindR::calculate_alignment_stats, include_aln = TRUE) %>%
+  mutate(bait_id = names(alignment_list))
 }
 
 # Filter alignments to get final baits.
