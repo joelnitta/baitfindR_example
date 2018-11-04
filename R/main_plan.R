@@ -136,22 +136,22 @@ run_mcl <- drake_plan (
   blast_formatted_for_mcl = baitfindR::blast_to_mcl(
     blast_results = file_in(here("02_clustering/all.rawblast")),
     hit_fraction_cutoff = my_hit_frac,
-    outfile = file_out(here(glue("02_clustering/all.rawblast.hit-frac{my_hit_frac}.minusLogEvalue")))
+    outfile = file_out(here("02_clustering/all.rawblast.hit-frac`my_hit_frac`.minusLogEvalue"))
     ),
   
   # Run mcl
   mcl_clusters = baitfindR::mcl(
-    mcl_input = file_in(here(glue("02_clustering/all.rawblast.hit-frac{my_hit_frac}.minusLogEvalue"))),
+    mcl_input = file_in(here("02_clustering/all.rawblast.hit-frac`my_hit_frac`.minusLogEvalue")),
     i_value = my_i_value,
     e_value = 5,
     other_args = c("--abc", "-te", "2"),
-    mcl_output = file_out(here(glue("02_clustering/hit-frac{my_hit_frac}_I{my_i_value}_e5")))
+    mcl_output = file_out(here("02_clustering/hit-frac`my_hit_frac`_I`my_i_value`_e5"))
     ),
   
   # Write fasta files for each cluster from mcl output to 03_clusters/
   fasta_clusters = baitfindR::write_fasta_files_from_mcl(
     all_fasta = file_in(here("02_clustering/all_orfs.fa")),
-    mcl_outfile = file_in(here(glue("02_clustering/hit-frac{my_hit_frac}_I{my_i_value}_e5"))),
+    mcl_outfile = file_in(here("02_clustering/hit-frac`my_hit_frac`_I`my_i_value`_e5")),
     minimal_taxa = 4,
     outdir = here("03_clusters"),
     get_hash = TRUE,
@@ -168,7 +168,9 @@ run_mcl <- drake_plan (
     bootstrap = FALSE,
     get_hash = TRUE,
     infile = fasta_clusters)
-)
+) %>%
+  evaluate_plan(rules = list("`my_hit_frac`" = my_hit_frac, 
+                             "`my_i_value`" = my_i_value))
 
 # 04_homologs, 05_orthologs -----------------------------------------------
 
