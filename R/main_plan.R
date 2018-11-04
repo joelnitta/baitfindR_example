@@ -389,7 +389,7 @@ mask_and_filter_baits <- drake_plan (
 
 # Output report
 write_report <- drake_plan(
-  rmarkdown::render(
+  report = rmarkdown::render(
     knitr_in(here::here("report.Rmd")),
     output_format = "html_document",
     output_file = file_out(here::here("report.html")),
