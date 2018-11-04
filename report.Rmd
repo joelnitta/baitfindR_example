@@ -1,0 +1,59 @@
+---
+title: "baitfindR Analysis Report"
+output: 
+  html_document:
+    df_print: paged
+  github_document:
+    html_preview: false  
+---
+
+```{r load_packages, include=FALSE}
+library(tidyverse)
+library(ape)
+library(drake)
+library(knitr)
+library(baitfindR)
+```
+
+## Dataset
+```{r data_stats, include=FALSE}
+# Calculate file size of each transcriptome, get mean and sd
+codes <- baitfindR::onekp_data$code
+transcriptomes <- list.files(here::here("data"), 
+                             pattern = paste(codes, collapse="|"))
+sizes <- file.info(here::here("data", transcriptomes))$size
+mean_sample_file_size <- mean(sizes)
+sd_sample_file_size <- sd(sizes)
+```
+
+The dataset included `r length(codes)` samples (transcriptomes). Transcriptomes were an average of `r utils:::format.object_size(mean_sample_file_size, "auto")` (sd `r utils:::format.object_size(sd_sample_file_size, "auto")`).
+
+## Run times
+
+The workflow took `r build_times() %>% pull(elapsed) %>% sum() %>% lubridate::as.duration() %>% paste()` total.
+
+## Filtering
+```{r filtering_stats, include=FALSE}
+# Get number of baits in original ortholog pool, after filtering by family, 
+# and after filtering by blast
+filtering_stats <- tibble(
+num_orthologs = list.files(
+  here::here("05_orthologs/fasta"), pattern = "cluster") %>% length,
+num_family_filtered = readd(family_filtered_baits) %>% length,
+num_blast_filtered = list.files(
+  here::here("06_intron_masking/blast_filtered"), 
+             pattern = "bestmatch") %>% length,
+num_final_baits = list.files(
+  here::here("07_baits"), 
+             pattern = "fa") %>% length
+)
+
+```
+
+The Y&S workflow resulted in a pool of `r filtering_stats %>% pull(num_orthologs) %>% first` potential baits (orthologs).
+
+`r filtering_stats %>% pull(num_family_filtered) %>% first` baits remained after filtering by taxonomy at the family level (to pass the filter, each alignment had to include at least one sequence from each family).
+
+`r filtering_stats %>% pull(num_blast_filtered) %>% first` baits remained after filtering by BLAST (to pass the filter, each alignment had to have at least one BLAST hit in the intron-masked genomes).
+
+`r filtering_stats %>% pull(num_final_baits) %>% first` final baits were produced.

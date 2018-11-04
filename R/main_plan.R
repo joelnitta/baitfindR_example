@@ -387,13 +387,13 @@ mask_and_filter_baits <- drake_plan (
 
 )
 
-# output report
-# report_plan <- drake_plan(
-#   rmarkdown::render(
-#     knitr_in("report_01.Rmd"),
-#     output_format = "html_document",
-#     output_file = file_out("report_01.html"), 
-#     quiet = TRUE))
+# Output report
+write_report <- drake_plan(
+  rmarkdown::render(
+    knitr_in(here::here("report.Rmd")),
+    output_format = "html_document",
+    output_file = file_out(here::here("report.html")),
+    quiet = TRUE))
 
 main_plan <- bind_plans(build_blastp_db, 
                         run_transdecoder, 
@@ -405,7 +405,8 @@ main_plan <- bind_plans(build_blastp_db,
                         mask_genes,
                         concatenate_masked_genes,
                         make_masked_genes_blast_db,
-                        mask_and_filter_baits)
+                        mask_and_filter_baits,
+                        write_report)
 
 rm(build_blastp_db, 
     run_transdecoder, 
@@ -417,4 +418,5 @@ rm(build_blastp_db,
     mask_genes,
     concatenate_masked_genes,
     make_masked_genes_blast_db,
-    mask_and_filter_baits)
+    mask_and_filter_baits,
+    write_report)
