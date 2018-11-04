@@ -345,12 +345,23 @@ cat_ext_files <- function (input, output, wd = NULL, ...) {
                   wd))
 }
 
-# write out a list of fasta files to a directory
-write_fasta_files <- function (fasta_list, out_dir, suffix = NULL, prefix = NULL, get_hash = TRUE, ...) {
+# Write out a list of fasta files to a directory.
+# Optionally assign names to the files fasta_list isn't already named
+# or if you want to over-write the original names
+write_fasta_files <- function (fasta_list, fasta_names = NULL, out_dir, 
+                               suffix = NULL, prefix = NULL, get_hash = TRUE, 
+                               ...) {
+  
   out_dir <- jntools::add_slash(out_dir)
   
+  if (!is.null(fasta_names)) names(fasta_list) <- fasta_names
+  
+  assertthat::assert_that(!is.null(fasta_names),
+                          msg = "fasta list must have names or fasta_names must
+                          be provided")
+  
   fasta_list %>%
-    set_names(paste0(out_dir, prefix, names(.), suffix)) %>%
+    rlang::set_names(paste0(out_dir, prefix, names(.), suffix)) %>%
     purrr::iwalk(ape::write.FASTA)
   
   # optional: get MD5 hash of output
