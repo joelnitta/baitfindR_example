@@ -356,7 +356,7 @@ write_fasta_files <- function (fasta_list, fasta_names = NULL, out_dir,
   
   if (!is.null(fasta_names)) names(fasta_list) <- fasta_names
   
-  assertthat::assert_that(!is.null(fasta_names),
+  assertthat::assert_that(!is.null(fasta_names) | !is.null(names(fasta_list)),
                           msg = "fasta list must have names or fasta_names must
                           be provided")
   
