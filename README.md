@@ -82,9 +82,9 @@ Usage
 
 1.  Clone the repo as above.
 
-2.  Launch the container (where `/path/to/baitfindR_drake` is the full path to the cloned repository on your machine):
+2.  Launch the container (where `/path/to/repo` is the full path to the cloned repository on your machine, e.g. `/home/me/baitfindR_simple`):
 
-        docker run -it -v /path/to/baitfindR_drake:/home/rstudio/ joelnitta/baitfindr_tidyverse bash
+        docker run -it -v /path/to/repo:/home/rstudio/ joelnitta/baitfindr_tidyverse bash
 
 3.  You should now be in the container. Run `make.R`:
 
@@ -96,9 +96,9 @@ The scripts take a few hours to finish, so it may be preferable to run docker in
 
 1.  Clone the repo as above.
 
-2.  Launch the container with the `-d` flag (you need to provide ROOT, USER, and PASSWORD as if you were going to use RStudio server since the docker image is based off of `rocker/tidyverse`):
+2.  Launch the container with the `-d` flag (you need to provide a non-default `PASSWORD` as if you were going to use RStudio server since the docker image is based off of `rocker/tidyverse`, or the container will die with no warning):
 
-        docker run -d -v /path/to/baitfindR_drake:/home/rstudio/ --name baitfindr -e ROOT=true -e USER=rstudio -e PASSWORD=clever_pw joelnitta/baitfindr_tidyverse
+        docker run -d -v /path/to/repo:/home/rstudio/ --name baitfindr -e PASSWORD=clever_pw joelnitta/baitfindr_tidyverse
 
 3.  Enter the container:
 
@@ -108,6 +108,8 @@ The scripts take a few hours to finish, so it may be preferable to run docker in
 
         nohup Rscript make.R > make.log 2>&1 &
         exit
+
+You will know the plan is finished running when the report (`report.html`) is successfully compiled.
 
 Settings
 --------
