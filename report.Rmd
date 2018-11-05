@@ -13,6 +13,10 @@ library(ape)
 library(drake)
 library(knitr)
 library(baitfindR)
+
+# Load data objects from plan
+loadd(final_baits_out)
+loadd(family_filtered_baits)
 ```
 
 ## Dataset
@@ -39,7 +43,7 @@ The workflow took `r build_times() %>% pull(elapsed) %>% sum() %>% lubridate::as
 filtering_stats <- tibble(
 num_orthologs = list.files(
   here::here("05_orthologs/fasta"), pattern = "cluster") %>% length,
-num_family_filtered = readd(family_filtered_baits) %>% length,
+num_family_filtered = family_filtered_baits %>% length,
 num_blast_filtered = list.files(
   here::here("06_intron_masking/blast_filtered"), 
              pattern = "bestmatch") %>% length,

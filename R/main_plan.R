@@ -170,7 +170,8 @@ run_mcl <- drake_plan (
     infile = fasta_clusters)
 ) %>%
   evaluate_plan(rules = list("`my_hit_frac`" = my_hit_frac, 
-                             "`my_i_value`" = my_i_value))
+                             "`my_i_value`" = my_i_value),
+                rename = FALSE)
 
 # 04_homologs, 05_orthologs -----------------------------------------------
 
