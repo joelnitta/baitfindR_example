@@ -6,6 +6,7 @@
 *.html
 data_raw/
 data/
+tmp/
 01_translation/
 02_clustering/
 03_clusters/
