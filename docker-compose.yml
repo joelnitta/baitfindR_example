@@ -9,12 +9,3 @@ services:
     environment:
       PASSWORD: "cleverpw"
       ROOT: "true"
-  rmd:
-    image: joelnitta/rmd
-    ports:
-      - "7070:8787"
-    volumes:
-      - ".:/home/rstudio/baitfindR_simple"
-    environment:
-      PASSWORD: "cleverpw"
-      ROOT: "true"

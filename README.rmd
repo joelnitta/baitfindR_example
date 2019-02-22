@@ -25,7 +25,7 @@ Note that on 2018-08-30 a [new version of the Y&S workflow](https://bitbucket.or
 
 ### Example data
 
-The `example_data` plan downloads transcriptomes from the [1000 plants, or '1KP' project](https://sites.google.com/a/ualberta.ca/onekp/) as input to the Y&S workflow. By default, it downloads eight fern transcriptomes, as well proteomes and genomes of *Arabidopsis thaliana*, *Azolla filiculoides*, *Salvinia cucullata*, and *Lygodium japonicum* (proteome only). 
+The `example_data` plan downloads transcriptomes from the [1000 plants, or '1KP' project](https://sites.google.com/a/ualberta.ca/onekp/) as input to the Y&S workflow. By default, it downloads eight fern transcriptomes, as well proteomes and genomes of *Arabidopsis thaliana*, *Azolla filiculoides*, *Salvinia cucullata*, and *Lygodium japonicum* (proteome only).
 
 Because it takes a long time to run the analyses on complete transcriptomes (in particular the BLAST steps), the transcriptomes are randomly downsized to 25% of their original size.
 
@@ -43,12 +43,12 @@ This plan uses pre-set values for `hit_frac_cutoff` and `I-value`, and the "one-
 
 A docker image is provided to run the code. This is the preferred method, as there are many dependencies which are otherwise tedious to install, and may not even work correctly if versions have changed.
 
-To use the image, first [install Docker](https://docs.docker.com/install/). 
+To use the image, first [install Docker](https://docs.docker.com/install/).
 
 Pull the latest build:
 
 ```
-docker pull joelnitta/baitfindr_tidyverse
+docker pull joelnitta/baitfindr
 ```
 
 ## Dependencies
@@ -57,7 +57,7 @@ These are the dependencies needed if you choose to install everything locally in
 
 ### R Packages
 
-You will need to install all packages (and their dependencies) listed in `R/packages.R`. Most of these are available on CRAN and can be installed using `install.packages()`. 
+You will need to install all packages (and their dependencies) listed in `R/packages.R`. Most of these are available on CRAN and can be installed using `install.packages()`.
 
 `baitfindR` and `jntools` must be installed from github using `devtools`.
 
@@ -74,53 +74,66 @@ You will need all the [dependencies for Y&S](https://bitbucket.org/yangya/phylog
 
 ### Running locally (not using Docker)
 
-1. Clone this repository to your computer:
+Clone this repository to your computer:
 ```
 git clone https://github.com/joelnitta/baitfindR_simple.git
-cd baitfindR_drake
+cd baitfindR_simple
 ```
 
-2. Open `make.R`, [change the default paths for Y&S scripts](https://joelnitta.github.io/baitfindR/reference/set_ys_path.html), and save.
+Open `make.R`, [change the default paths for Y&S scripts](https://joelnitta.github.io/baitfindR/reference/set_ys_path.html), and save.
 
-3. Run `make.R` by either running `Rscript make.R` from the command line, or opening `make.R` in RStudio and clicking on 'Source'.
+Run `make.R` by either running `Rscript make.R` from the command line, or opening `make.R` in RStudio and clicking on 'Source'.
 
 ### Running with Docker (interactive mode)
 
-1. Clone the repo as above.
+Clone the repo as above.
 
-2. Launch the container (where `/path/to/repo` is the full path to the cloned repository on your machine, e.g. `/home/me/baitfindR_simple`):
+Launch the container (where `/path/to/repo` is the full path to the cloned repository on your machine, e.g. `/home/me/baitfindR_simple`):
 ```
-docker run -it -v /path/to/repo:/home/rstudio/ joelnitta/baitfindr_tidyverse bash
+docker run -it -v /path/to/repo:/home/rstudio/ joelnitta/baitfindr bash
 ```
 
-3. You should now be in the container. Run `make.R`:
+You should now be in the container. Run `make.R`:
 ```
 Rscript make.R
 ```
 
 ### Running with Docker (detached mode)
 
-The scripts take a few hours to finish, so it may be preferable to run docker in a detached state in the background. 
+The scripts take a few hours to finish, so it may be preferable to run docker in a detached state in the background.
 
-1. Clone the repo as above.
+Clone the repo as above.
 
-2. Launch the container with the `-d` flag (you need to provide a non-default `PASSWORD` as if you were going to use RStudio server since the docker image is based off of `rocker/tidyverse`, or the container will die with no warning):
-```
-docker run -d -v /path/to/repo:/home/rstudio/ --name baitfindr -e PASSWORD=clever_pw joelnitta/baitfindr_tidyverse
-```
+Launch the container in detached mode.  There are two options to do this. 
 
-3. Enter the container:
+- Use `docker run` with the `-d` flag. You also need to provide a non-default `PASSWORD` as if you were going to use RStudio server since the docker image is based off of `rocker/tidyverse`, or the container will die with no warning:
 ```
-docker exec -it baitfindr bash
+docker run -d -v /path/to/repo:/home/rstudio/ --name baitfindr_simple_analysis_1 -e PASSWORD=cleverpw joelnitta/baitfindr
 ```
 
-4. Run `make.R` with `nohup` (and a log) so it continues running after we exit the shell:
+- Or, use `docker-compose` after navigating to the repo (this way requires less typing):
+```
+cd /path/to/repo
+docker-compose up -d
+```
+
+Enter the container:
+```
+docker exec -it baitfindr_simple_analysis_1 bash
+```
+
+Run `make.R` with `nohup` (and a log) so it continues running after we exit the shell:
 ```
 nohup Rscript make.R > make.log 2>&1 &
 exit
 ```
 
-You will know the plan is finished running when the report (`report.html`) is successfully compiled.
+You will know the plan is finished running when the report (`report.html`) is successfully compiled. This takes 3-4 hours with the example dataset.
+
+Clean up the container when you're done:
+```
+docker kill baitfindr_simple_analysis_1
+```
 
 ## Settings
 

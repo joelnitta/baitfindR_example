@@ -42,7 +42,7 @@ To use the image, first [install Docker](https://docs.docker.com/install/).
 
 Pull the latest build:
 
-    docker pull joelnitta/baitfindr_tidyverse
+    docker pull joelnitta/baitfindr
 
 Dependencies
 ------------
@@ -69,47 +69,58 @@ Usage
 
 ### Running locally (not using Docker)
 
-1.  Clone this repository to your computer:
+Clone this repository to your computer:
 
-        git clone https://github.com/joelnitta/baitfindR_simple.git
-        cd baitfindR_drake
+    git clone https://github.com/joelnitta/baitfindR_simple.git
+    cd baitfindR_simple
 
-2.  Open `make.R`, [change the default paths for Y&S scripts](https://joelnitta.github.io/baitfindR/reference/set_ys_path.html), and save.
+Open `make.R`, [change the default paths for Y&S scripts](https://joelnitta.github.io/baitfindR/reference/set_ys_path.html), and save.
 
-3.  Run `make.R` by either running `Rscript make.R` from the command line, or opening `make.R` in RStudio and clicking on 'Source'.
+Run `make.R` by either running `Rscript make.R` from the command line, or opening `make.R` in RStudio and clicking on 'Source'.
 
 ### Running with Docker (interactive mode)
 
-1.  Clone the repo as above.
+Clone the repo as above.
 
-2.  Launch the container (where `/path/to/repo` is the full path to the cloned repository on your machine, e.g. `/home/me/baitfindR_simple`):
+Launch the container (where `/path/to/repo` is the full path to the cloned repository on your machine, e.g. `/home/me/baitfindR_simple`):
 
-        docker run -it -v /path/to/repo:/home/rstudio/ joelnitta/baitfindr_tidyverse bash
+    docker run -it -v /path/to/repo:/home/rstudio/ joelnitta/baitfindr bash
 
-3.  You should now be in the container. Run `make.R`:
+You should now be in the container. Run `make.R`:
 
-        Rscript make.R
+    Rscript make.R
 
 ### Running with Docker (detached mode)
 
 The scripts take a few hours to finish, so it may be preferable to run docker in a detached state in the background.
 
-1.  Clone the repo as above.
+Clone the repo as above.
 
-2.  Launch the container with the `-d` flag (you need to provide a non-default `PASSWORD` as if you were going to use RStudio server since the docker image is based off of `rocker/tidyverse`, or the container will die with no warning):
+Launch the container in detached mode. There are two options to do this.
 
-        docker run -d -v /path/to/repo:/home/rstudio/ --name baitfindr -e PASSWORD=clever_pw joelnitta/baitfindr_tidyverse
+-   Use `docker run` with the `-d` flag. You also need to provide a non-default `PASSWORD` as if you were going to use RStudio server since the docker image is based off of `rocker/tidyverse`, or the container will die with no warning:
 
-3.  Enter the container:
+        docker run -d -v /path/to/repo:/home/rstudio/ --name baitfindr_simple_analysis_1 -e PASSWORD=cleverpw joelnitta/baitfindr
 
-        docker exec -it baitfindr bash
+-   Or, use `docker-compose` after navigating to the repo (this way requires less typing):
 
-4.  Run `make.R` with `nohup` (and a log) so it continues running after we exit the shell:
+        cd /path/to/repo
+        docker-compose up -d
 
-        nohup Rscript make.R > make.log 2>&1 &
-        exit
+Enter the container:
 
-You will know the plan is finished running when the report (`report.html`) is successfully compiled.
+    docker exec -it baitfindr_simple_analysis_1 bash
+
+Run `make.R` with `nohup` (and a log) so it continues running after we exit the shell:
+
+    nohup Rscript make.R > make.log 2>&1 &
+    exit
+
+You will know the plan is finished running when the report (`report.html`) is successfully compiled. This takes 3-4 hours with the example dataset.
+
+Clean up the container when you're done:
+
+    docker kill baitfindr_simple_analysis_1
 
 Settings
 --------
