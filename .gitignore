@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .drake
+.DS_Store
 *.html
 data_raw/
 data/
