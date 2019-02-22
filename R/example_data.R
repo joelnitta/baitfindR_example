@@ -50,11 +50,7 @@ genomes_data_plan <- drake_plan(
 # across vector of transcriptome codes.
 transcriptomes_data_plan <- drake_plan(
   
-  # Download transcriptomes
-  download = download.file(
-    url = "http://206.12.96.204/onekp/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2",
-    destfile = file_out(here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2"))
-  ),
+  # This assumes the raw transcriptomes have already been downloaded to data_raw
   
   # Downsize transcriptomes
   downsize = downsize_transcriptome(
