@@ -44,13 +44,19 @@ my_i_value <- 2
 # Vector of reference genomes to use for making masked blast db
 genomes <- c("arabidopsis", "azolla", "salvinia")
 
-### Load and make plans
-
+### Load plans
 source("R/example_data.R")
 source("R/main_plan.R")
 
-# Download and pre-process example data
+### Download and pre-process example data
 make(example_data)
 
-# Run analyses
-make(main_plan, jobs = 4)
+### Run analyses
+#
+# `jobs` is set to 1, but may be increased up to the number of
+# cores (CPUs) available. 
+# 
+# Check the number of cores available with this command:
+# future::availableCores()
+
+make(main_plan, jobs = 1)
