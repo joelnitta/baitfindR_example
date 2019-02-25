@@ -8,6 +8,26 @@ downsize_transcriptome <- function (file, keep_frac) {
   seq <- seq[sample(1:length(seq), keep_frac*length(seq))]
 }
 
+
+#' Downsize a file from the top
+#' 
+#' Only the lines specified from the first to the fraction
+#' of the file specified by `keep_frac` will be kept.
+#'
+#' @param full_file Path to input file
+#' @param path Path to write out downsized file
+#' @param keep_frac Fraction of file to retain
+#'
+#' @return NULL
+downsize_simple <- function(full_file, path, keep_frac) {
+  
+  full <- readr::read_lines(full_file)
+  short <- full[1:round(length(full)*keep_frac, 0)]
+  readr::write_lines(short, path)
+  
+}
+
+
 # Untar with tracking
 untar_tracked <- function (tarfile, compressed, exdir, ...) {
   untar(tarfile = tarfile, compressed = compressed, exdir = exdir)
