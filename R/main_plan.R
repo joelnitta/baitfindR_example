@@ -372,7 +372,7 @@ mask_and_filter_baits <- drake_plan (
   # Fill-in introns and remove outgroup
   combined_alignments_filled = fill_introns_loop (
     alignment_list = combined_alignments,
-    outgroup = "FQGQ"
+    outgroup = outgroup
   ),
   
   # Calculate summary statistics for alignments
