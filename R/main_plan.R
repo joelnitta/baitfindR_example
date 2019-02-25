@@ -317,7 +317,7 @@ mask_and_filter_baits <- drake_plan (
   # one sample per ingroup family)
   family_filtered_baits = filter_fasta(
     seq_folder = here::here("05_orthologs/fasta"),
-    taxonomy_data = onekp_data,
+    taxonomy_data = cheilanthoid_taxonomy,
     filter_col = "family",
     sample_col = "code",
     depends1 = file_in(here::here("06_intron_masking/masked_genes.nhr")),

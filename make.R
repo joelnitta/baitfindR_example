@@ -22,20 +22,26 @@ source("R/functions.R")
 
 ### Define basic input values
 
-# Vector of 4-letter transcriptome codes.
-# These will be downloaded from the 1KP website. 
-# Here we use a subset of eupolypod II ferns including 
-# species in Aspleniaceae, Athyriaceae, and Woodsiaceae
-# as the ingroup, and a single eupolypod I fern as the outgroup
-codes <- baitfindR::onekp_data$code
+# Vector of transcriptome samples. These are all cheilanthoid ferns.
+codes <- c("ALCS", "ALLE", "ASCG", "ADSH", "CHCS", "CHNI", "DCDT", "GAAG", "PTSG", "ZXJO", "GSXD", "YCKE", "XDDT")
 
 # Specify outgroup
-outgroup <- "FQGQ"
+outgroup <- "ADSH"
 
-# For the example data, to what fraction should transcriptomes 
+# Specify taxonomy table to use for filtering
+cheilanthoid_taxonomy <- tibble(
+  code = codes,
+  group = rep("in", length(codes)),
+  family = rep("pteridaceae", length(codes))
+) %>%
+  mutate(group = case_when(
+    code == "ADSH" ~ "out",
+    TRUE ~ "in"
+  ))
+
+# For testing, to what fraction should transcriptomes 
 # be down-sized? e.g., 0.05 = 5%
-trim_frac <- 0.25
-set.seed(9542) # for reproducibility
+trim_frac <- 0.10
 
 # Values to use for mcl I value and Y&S hit-frac-cutoff
 my_hit_frac <- 0.4

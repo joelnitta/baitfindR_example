@@ -45,22 +45,17 @@ genomes_data_plan <- drake_plan(
   )
 )
 
-# Download and downsize transcriptomes
-# Use wildcard transcriptomes__ to expand 
-# across vector of transcriptome codes.
+# Downsize transcriptomes
+# for testing
 transcriptomes_data_plan <- drake_plan(
   
   # This assumes the raw transcriptomes have already been downloaded to data_raw
-  
   # Downsize transcriptomes
-  downsize = downsize_transcriptome(
-    file = file_in(here("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")), 
-    keep_frac = trim_frac),
-  
-  # Write-out transcriptomes
-  write = ape::write.FASTA(
-    x = downsize_transcriptome__,
-    file = here("data/transcriptome__"))
+  downsize = downsize_simple(
+    full_file = here("data_raw/transcriptome__"), 
+    keep_frac = trim_frac,
+    path = here("data/transcriptome__")
+  )
 ) %>%
   evaluate_plan(rules = list(transcriptome__ = codes))
 
