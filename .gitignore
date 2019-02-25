@@ -5,6 +5,7 @@
 .drake
 .DS_Store
 *.html
+*.log
 data_raw/
 data/
 tmp/
