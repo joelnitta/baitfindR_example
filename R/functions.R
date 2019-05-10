@@ -205,19 +205,72 @@ extract_masked_genes <- function (genes_file, masked_genome_file, masked_genes_f
   if (file.exists(script_file)) {file.remove(script_file)}
 }
 
-# Mask introns in a genome
+#' Mask introns in a genome
+#'
+#' @param introns_file Path to bed file with locations of introns in genome.
+#' (bed file is a tab-separated file with columns for "chr" (chromosome), "start",
+#' and "end", in that order).
+#' @param genome_file Path to full genome file in fasta format.
+#' @param masked_genome_file Path to write genome file with introns masked.
+#' @param wd Working directory. A temporary bash script will be written and 
+#' executed here.
+#' @param ... Other arguments not used by this function but meant for tracking
+#' with drake.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' 
+#' # First write genes, introns, and exons out as tsv files
+#' 
+#' dir.create("temp_dir")
+#' find_bed_regions(
+#'   gff3_file = "data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
+#'   source_select = "araport11",
+#'   out_type = "write_all",
+#'   out_dir = "temp_dir",
+#'   prefix = "test"
+#' )
+#' 
+#' # Now mask the genome, using the intron and genome files.
+#' mask_genome(
+#'   introns_file = "temp_dir/test_introns",
+#'   genome_file = "data_raw/Arabidopsis_thaliana.TAIR10.dna.toplevel.renamed.fasta",
+#'   masked_genome_file = "temp_dir/test_masked"
+#' )
 mask_genome <- function (introns_file, genome_file, masked_genome_file, wd = here::here(), ...) {
   
-  introns <- read_tsv(introns_file, col_names = c("chr", "start", "end"), col_types = "cdd")
+  # Check input
+  assertthat::assert_that(assertthat::is.string(introns_file))
+  introns_file <- fs::path_abs(introns_file)
+  assertthat::assert_that(assertthat::is.readable(introns_file))
+  
+  assertthat::assert_that(assertthat::is.string(genome_file))
+  genome_file <- fs::path_abs(genome_file)
+  assertthat::assert_that(assertthat::is.readable(genome_file))
+  
+  introns <- readr::read_tsv(introns_file, col_names = c("chr", "start", "end"), col_types = "cdd")
+  
+  checkr::check_data(
+    introns,
+    values = list(
+      chr = "a",
+      start = 1,
+      end = 1
+    ),
+    order = TRUE)
   
   if (!(check_bed_genome_names(genome_file, introns))) {
     stop ("Names don't match between bed file and genome fasta headers")
   }
   
-  wd <- jntools::add_slash(wd)
+  wd <- fs::path_abs(wd)
+
+  # Make path for script file based on digest of introns.
+  script_file <- fs::path(wd, digest::digest(introns), ext = "sh")
   
-  script_file <- glue::glue('{wd}{digest::digest(introns)}.sh')
-  
+  # Write out script file.
   make_bash_script(
     script = script_file,
     command = "bedtools maskfasta",
@@ -407,12 +460,13 @@ find_bed_regions <- function (gff3_file,
 check_bed_genome_names <- function (fasta_file, bed) {
   # find all sequence headers in fasta file
   seq_names <- 
-    read_lines(fasta_file) %>%
-    keep(~ grepl(">", .x)) %>%
-    map(~ gsub(">", "", .x))
-  # make sure "chr" names of bed file are all in fasta sequence headers
-  chr_names <- unique(bed$chr)
-  length(chr_names[chr_names %in% seq_names]) == length(chr_names)
+    readr::read_lines(fasta_file) %>%
+    purrr::keep(~ grepl(">", .x)) %>%
+    purrr::map(~ gsub(">", "", .x))
+  # make sure "chr" (chromosome) names of bed file are all in
+  # fasta sequence headers
+  chr <- unique(bed$chr)
+  all(chr %in% seq_names)
 }
 
 # Rename arabidopsis genomes so that 
@@ -439,12 +493,21 @@ rename_arabidopsis_genome <- function (fasta_in, fasta_out, ...) {
 
 # General-purpose ---------------------------------------------------------
 
-# Make a bash script
-# The main reason for this is to call other
-# programs in different working directories
-# without changing R's wd. processx::run()
-# can also do this, but is very picky about
-# which programs it will execute.
+#' Make a bash script
+#'
+#' The main reason for this is to call other
+#' programs in different working directories
+#' without changing R's wd. processx::run()
+#' can also do this, but is very picky about
+#' which programs it will execute.
+#' 
+#' @param script_file Path to write script file
+#' @param command Command to run
+#' @param arguments Arguments for command. If > 1 argument, the same
+#' command will be run each time.
+#' @param wd Working directory to run script
+#' @param ... 
+#'
 make_bash_script <- function(script_file, command, arguments, wd = NULL, ...) {
   
   sink(file = script_file, type = "output")
@@ -460,6 +523,7 @@ make_bash_script <- function(script_file, command, arguments, wd = NULL, ...) {
   sink()
 }
 
+# Run a bash script
 run_bash_script <- function (script_file, ...) {
   system2("bash", script_file)
 }
