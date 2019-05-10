@@ -233,64 +233,171 @@ mask_genome <- function (introns_file, genome_file, masked_genome_file, wd = her
   if (file.exists(script_file)) {file.remove(script_file)}
 }
 
-# Helper to clean up data from gff3 file 
-# and convert to bed format
-clean_gff <- function (region) {
+#' Clean up data from a gff file and
+#' convert to bed format
+#' 
+#' Helper function for `find_bed_regions`. Merges overlapping regions and sorts
+#' regions.
+#'
+#' @param region Dataframe; list of gene regions in "bed" format. Must include 
+#' the following columns in order: `chr` ('chromosome', character), `start` 
+#' (start position, numeric), and `end` (end position, numeric).
+#' @param check.chr Logical; should coordinates be checked for chromosomal
+#' format with "chr" prefix?
+#' @param verbose Logical; should `bedr` functions output all messages?
+#'
+#' @return Dataframe in "bed" format.
+#'
+clean_gff <- function (region, check.chr = FALSE, verbose = FALSE) {
+  
+  # Check input format
+  assertthat::assert_that(
+    bedr:::determine.input(region, verbose = verbose) == 1,
+    msg = "Input must be dataframe in 'bed' format")
+  
   region %>%
-    filter(is.valid.region(., check.chr = FALSE)) %>%
-    bedr.merge.region(check.chr = FALSE) %>% 
-    bedr.sort.region(check.chr = FALSE) %>% 
-    convert2bed(check.chr = FALSE)
+    # Check if region is valid
+    dplyr::filter(bedr::is.valid.region(., check.chr = check.chr, verbose = verbose)) %>%
+    # Collapse overlapping regions
+    bedr::bedr.merge.region(check.chr = check.chr, verbose = verbose) %>%
+    # Sort regions
+    bedr::bedr.sort.region(check.chr = check.chr, verbose = verbose) %>% 
+    # Convert to bed format
+    bedr::convert2bed(check.chr = check.chr, verbose = verbose)
 }
 
-# Find genes, exons, and introns from a gff3 file
+#' Find genes, exons, and introns in a gff3 file
+#' 
+#' If tsv files are written out by selecting "write_all" for `out_type`,
+#' they will overwrite any existing files with the same name in `out_dir`.
+#'
+#' @param gff3_file Path to input file in `gff3` format.
+#' @param source_select Character vector; only use regions from these
+#' sources. Must match values in `source` column of gff3 file. Optional.
+#' @param gene_label String; value used to indicate genes in gff3 file.
+#' Must match at least one value in `type` column of gff3 file. Default "gene".
+#' @param exon_label String; value used to indicate exons in gff3 file.
+#' Must match at least one value in `type` column of gff3 file. Default "exon".
+#' @param verbose Logical; should `bedr` functions output all messages?
+#' @param out_type Type of output to return:
+#' "genes": dataframe in "bed" format of genes.
+#' "introns": dataframe in "bed" format of introns.
+#' "exons": dataframe in "bed" format of exons.
+#' "write_all": write tab-separated files for each of `genes`, `introns`, and
+#' `exons` to `out_dir`. The hash digest of the combined genes, introns, and 
+#' exons will be returned.
+#' @param prefix String; prefix to attach to tsv files if `out_type` is 
+#' "write_all".
+#' @param out_dir Directory to write tsv files if `out_type` is "write_all".
+#' @param ... Other arguments not used by this function but meant for tracking
+#' with drake.
+#'
+#' @return Dataframe or character.
+#'
+#' @examples
+#' # Find genes
+#' genes <- find_bed_regions(
+#'   gff3_file = "/home/rstudio/baitfindR_simple/data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
+#'   source_select = "araport11",
+#'   out_type = "genes"
+#' )
+#' tibble::as_tibble(genes)
+#' 
+#' # Find introns
+#' introns <- find_bed_regions(
+#'   gff3_file = "/home/rstudio/baitfindR_simple/data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
+#'   source_select = "araport11",
+#'   out_type = "introns"
+#' )
+#' tibble::as_tibble(introns)
+#' 
+#' # Find exons
+#' exons <- find_bed_regions(
+#'   gff3_file = "/home/rstudio/baitfindR_simple/data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
+#'   source_select = "araport11",
+#'   out_type = "exons"
+#' )
+#' tibble::as_tibble(exons)
+#' 
+#' # Write genes, introns, and exons out as tsv files
+#' dir.create("temp_dir")
+#' find_bed_regions(
+#'   gff3_file = "/home/rstudio/baitfindR_simple/data_raw/Arabidopsis_thaliana.TAIR10.40.gff3.gz",
+#'   source_select = "araport11",
+#'   out_type = "write_all",
+#'   out_dir = "temp_dir",
+#'   prefix = "test"
+#' )
+#' @export
 find_bed_regions <- function (gff3_file, 
-                              source_select, 
-                              gene_label = "gene", exon_label = "exon", 
+                              source_select = NULL, 
+                              gene_label = "gene", exon_label = "exon",
+                              verbose = FALSE,
                               prefix = NULL, out_dir = NULL, 
                               out_type = c("genes", "introns", "exons", "write_all"), 
                               ...) {
   
-  # Avoid conflicts
-  filter <- dplyr::filter
+  # Check input
+  assertthat::assert_that(assertthat::is.readable(gff3_file))
+  assertthat::assert_that(assertthat::is.string(gene_label))
+  assertthat::assert_that(assertthat::is.string(exon_label))
+  assertthat::assert_that(assertthat::is.string(out_type))
+  assertthat::assert_that(is.logical(verbose))
+  assertthat::assert_that(out_type %in% c("genes", "introns", "exons", "write_all"),
+                          msg = "'out_type' must be one of 'genes', 'introns', 'exons', or 'write_all'")
   
-  # Read in and pre-process gff3 file
-  gff3 <- ape::read.gff(gff3_file) %>% 
-    filter(source == source_select) %>%
-    mutate(chr = as.character(seqid))
   
-  # Extract and clean-up genes
-  genes <- gff3 %>% filter(type == gene_label) %>% 
-    select(chr, start, end) %>%
-    clean_gff
+  # Read in gff3 file as dataframe
+  gff3 <- ape::read.gff(gff3_file) %>%
+    dplyr::mutate(chr = as.character(seqid))
   
-  # Extract and clean-up exons
-  exons <- gff3 %>% filter(type == exon_label) %>% 
-    select(chr, start, end) %>%
-    clean_gff
-  
-  # Introns are genes - exons
-  introns <- bedr.subtract.region(genes, exons, remove.whole.feature = FALSE, check.chr = FALSE)
-  
-  # Format output
-  results <- switch (out_type,
-                     genes = genes,
-                     exons = exons,
-                     introns = introns,
-                     write_all = TRUE
-  )
-  
-  # Optionally write out all regions for bedtools
-  if (isTRUE(results)) {
-    out_dir <- jntools::add_slash(out_dir)
-    list(genes = genes,
-         exons = exons,
-         introns = introns) %>%
-      set_names(paste0(out_dir, prefix, "_", names(.))) %>%
-      purrr::iwalk(write_tsv, col_names = FALSE)
+  # Keep only annotations from selected source
+  if (!is.null(source_select)) {
+    assertthat::assert_that(is.character(source_select))
+    assertthat::assert_that(all(source_select %in% gff3$source))
+    gff3 <- dplyr::filter(gff3, source %in% source_select)
   }
   
-  return(results)
+  # Extract and clean up genes
+  genes <- gff3 %>% dplyr::filter(type == gene_label) %>% 
+    dplyr::select(chr, start, end) %>%
+    clean_gff(verbose = verbose)
+  
+  # Extract and clean up exons
+  exons <- gff3 %>% dplyr::filter(type == exon_label) %>% 
+    dplyr::select(chr, start, end) %>%
+    clean_gff(verbose = verbose)
+  
+  # Introns are genes - exons
+  introns <- bedr::bedr.subtract.region(
+    genes,
+    exons, 
+    remove.whole.feature = FALSE, 
+    check.chr = FALSE,
+    verbose = verbose)
+  
+  # Write out all regions and return hash of genes + exons + introns
+  if (out_type == "write_all") {
+    out_dir <- fs::path_abs(out_dir)
+    assertthat::assert_that(assertthat::is.writeable(out_dir))
+    assertthat::assert_that(assertthat::is.string(prefix))
+    all_regions <- list(genes = genes,
+                        exons = exons,
+                        introns = introns) 
+    all_regions %>%
+      purrr::set_names(fs::path(out_dir, paste0(prefix, "_", names(.)))) %>%
+      purrr::iwalk(readr::write_tsv, col_names = FALSE)
+    return(digest::digest(all_regions))
+  }
+  
+  # Or, return a particular result type.
+  return(switch(
+    out_type,
+    genes = genes,
+    exons = exons,
+    introns = introns
+  ))
+  
 }
 
 # Check that genome fasta headers and 
