@@ -76,7 +76,7 @@ run_transdecoder <- drake_plan(
 # Concatenate all the .cdhitest files into a new file all_orfs.fa
 concatenate_cdhitest <- 
   drake_plan(
-    read_reduced_cdhitest = read_file(file_in("02_clustering/transcriptome__.cds.fa.cdhitest"))
+    read_reduced_cdhitest = readr::read_file(file_in("02_clustering/transcriptome__.cds.fa.cdhitest"))
   ) %>%
   evaluate_plan(rules = list(transcriptome__ = codes)) %>%
   bind_plans(gather_plan(., target = "cdhitest_files")) %>%
@@ -179,7 +179,7 @@ run_mcl <- drake_plan (
 sort_homologs_orthologs <- drake_plan(
   
   # Trip extremely long tips from tree
-  trimmed_trees = trim_tips(
+  trimmed_trees = baitfindR::trim_tips(
     tree_folder = here("03_clusters"), 
     tree_file_ending = ".tre",
     relative_cutoff = 0.2,
@@ -188,14 +188,14 @@ sort_homologs_orthologs <- drake_plan(
     depends = basic_trees), 
   
   # Retain only one tip per taxon
-  masked_trees = mask_tips_by_taxonID_transcripts(
+  masked_trees = baitfindR::mask_tips_by_taxonID_transcripts(
     tree_folder = here("03_clusters"),
     aln_folder = here("03_clusters"),
     depends = trimmed_trees),
   
   # Break up homolog tree into orthologs by cutting 
   # at long internal branches
-  homolog_trees = cut_long_internal_branches( 
+  homolog_trees = baitfindR::cut_long_internal_branches( 
     tree_folder = here("03_clusters/"),
     tree_file_ending = ".mm",
     internal_branch_length_cutoff = 0.3,
@@ -204,7 +204,7 @@ sort_homologs_orthologs <- drake_plan(
     depends = masked_trees),
   
   # Write out sequences from trees
-  homolog_seqs = write_fasta_files_from_trees(
+  homolog_seqs = baitfindR::write_fasta_files_from_trees(
     all_fasta = here::here("02_clustering/all_orfs.fa"),
     tree_folder = here::here("04_homologs"),
     tree_file_ending = ".subtree",
@@ -212,7 +212,7 @@ sort_homologs_orthologs <- drake_plan(
     depends = homolog_trees),
   
   # Reassemble these into trees
-  homolog_clean_trees = fasta_to_tree(
+  homolog_clean_trees = baitfindR::fasta_to_tree(
     seq_folder = here::here("04_homologs"),
     number_cores = 1,
     seq_type = "dna",
@@ -221,7 +221,7 @@ sort_homologs_orthologs <- drake_plan(
     depends = homolog_seqs),
   
   # Prune orthologs using "1-to-1" method
-  ortho_121_trees = filter_1to1_orthologs(
+  ortho_121_trees = baitfindR::filter_1to1_orthologs(
     tree_folder = here::here("04_homologs"), 
     tree_file_ending = ".tre",
     minimal_taxa = 3,
@@ -230,7 +230,7 @@ sort_homologs_orthologs <- drake_plan(
     depends = homolog_clean_trees), 
   
   # Write out orthologs
-  ortholog_fasta = write_ortholog_fasta_files( 
+  ortholog_fasta = baitfindR::write_ortholog_fasta_files( 
     all_fasta = file_in(here::here("02_clustering/all_orfs.fa")),
     tree_folder = here::here("05_orthologs/tre"),
     outdir = here::here("05_orthologs/fasta"),
@@ -315,7 +315,7 @@ mask_and_filter_baits <- drake_plan (
   # Filter baits by family
   # (each alignment must contain at least
   # one sample per ingroup family)
-  family_filtered_baits = filter_fasta(
+  family_filtered_baits = baitfindR::filter_fasta(
     seq_folder = here::here("05_orthologs/fasta"),
     taxonomy_data = onekp_data,
     filter_col = "family",
@@ -329,7 +329,7 @@ mask_and_filter_baits <- drake_plan (
     out_dir = here::here("06_intron_masking/taxonomy_filtered")),
   
   # Align family-filtered baits in folder
-  aligned_baits = mafft_wrapper(
+  aligned_baits = baitfindR::mafft_wrapper(
     fasta_folder = here::here("06_intron_masking/taxonomy_filtered"),
     number_cores = 2,
     overwrite = TRUE,
@@ -338,7 +338,7 @@ mask_and_filter_baits <- drake_plan (
   ),
   
   # Clean up alignments in folder
-  cleaned_aligned_baits = phyutility_wrapper(
+  cleaned_aligned_baits = baitfindR::phyutility_wrapper(
     fasta_folder = here::here("06_intron_masking/taxonomy_filtered"),
     min_col_occup = 0.3,
     overwrite = TRUE,
