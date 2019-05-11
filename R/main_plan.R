@@ -8,11 +8,11 @@
 # as output file for tracking.
 build_blastp_db <- drake_plan(
   blastp_database = baitfindR::build_blast_db(
-    in_seqs = file_in(here("data/combined_proteomes.fasta")), 
-    out_name = here("01_translation/combined_proteomes"), 
+    in_seqs = file_in("data/combined_proteomes.fasta"), 
+    out_name = "01_translation/combined_proteomes", 
     db_type = "prot", 
     other_args = "-parse_seqids",
-    outfile = file_out(here("01_translation/combined_proteomes.phr"))
+    outfile = file_out("01_translation/combined_proteomes.phr")
   )
 )
 
@@ -24,48 +24,48 @@ run_transdecoder <- drake_plan(
   # folder.
   # Use longest_orfs.pep as representative output file for tracking.
   longest_orfs = baitfindR::transdecoder_long_orfs(
-    transcriptome_file = file_in(here("data/transcriptome__")),
-    wd = here("01_translation"),
+    transcriptome_file = file_in("data/transcriptome__"),
+    wd = "01_translation",
     other_args = "-S",
-    depends = file_in(here("01_translation/combined_proteomes.phr")),
-    outfile = file_out(here("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep"))
+    depends = file_in("01_translation/combined_proteomes.phr"),
+    outfile = file_out("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep")
   ),
   
   # Blast candidate long ORFs against the protein database
   orf_blast = baitfindR::blast_p(
-    query = file_in(here("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep")), 
-    database = here("01_translation/combined_proteomes"),
+    query = file_in("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep"), 
+    database = "01_translation/combined_proteomes",
     other_args = c("-max_target_seqs 1", "-evalue 10",  "-num_threads 2"),
-    out_file = file_out(here("01_translation/transcriptome__.blastp.outfmt6"))
+    out_file = file_out("01_translation/transcriptome__.blastp.outfmt6")
   ),
   
   # Output the final ORFs, preferentially retaining those with blast hits
   orf_predict = baitfindR::transdecoder_predict(
-    transcriptome_file = file_in(here("data/transcriptome__")),
-    blast_result = file_in(here("01_translation/transcriptome__.blastp.outfmt6")),
-    wd = here("01_translation"),
-    infile = file_in(here("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep")),
-    outfile = file_out(here("01_translation/transcriptome__.transdecoder.cds"))
+    transcriptome_file = file_in("data/transcriptome__"),
+    blast_result = file_in("01_translation/transcriptome__.blastp.outfmt6"),
+    wd = "01_translation",
+    infile = file_in("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep"),
+    outfile = file_out("01_translation/transcriptome__.transdecoder.cds")
   ),
   
   # Shorten names from transdecoder using R function
   # Y&S function works on whole folder, so not conducive to drake.
   # baitfindR function works on single file (transcriptome) at a time.
   seq_with_short_names = baitfindR::fix_names_from_transdecoder(
-    transdecoder_output = file_in(here("01_translation/transcriptome__.transdecoder.cds"))
+    transdecoder_output = file_in("01_translation/transcriptome__.transdecoder.cds")
   ),
   
   # Write out fasta files with shortened names
   seq_with_short_names_out = ape::write.FASTA(
     x = seq_with_short_names_transcriptome__, 
-    file = file_out(here("01_translation/transcriptome__.cds.fa"))
+    file = file_out("01_translation/transcriptome__.cds.fa")
   ),
   
   # Reduce redundancy for cds
   # Note that output is put into clustering/
   reduced_cdhitest = baitfindR::cd_hit_est(
-    input = file_in(here("01_translation/transcriptome__.cds.fa")), 
-    output = file_out(here("02_clustering/transcriptome__.cds.fa.cdhitest")), 
+    input = file_in("01_translation/transcriptome__.cds.fa"), 
+    output = file_out("02_clustering/transcriptome__.cds.fa.cdhitest"), 
     other_args = c("-c", "0.99", "-n", "10", "-r", "0", "-T", "2")
   )
 ) %>%
@@ -84,7 +84,7 @@ concatenate_cdhitest <-
     drake_plan(
       concatenated_cdhitest = baitfindR::cat_files(
         cdhitest_files,
-        output_file=file_out(here("02_clustering/all_orfs.fa"))
+        output_file=file_out("02_clustering/all_orfs.fa")
       )
     )
   )
@@ -94,20 +94,20 @@ run_allbyall_blast <- drake_plan(
   
   # Make all-by-all database including all ORFs
   all_blast_db = baitfindR::build_blast_db(
-    in_seqs = file_in(here("02_clustering/all_orfs.fa") ),
-    out_name = here("02_clustering/all_orfs"),
+    in_seqs = file_in("02_clustering/all_orfs.fa"),
+    out_name = "02_clustering/all_orfs",
     other_args = NULL,
     db_type = "nucl",
-    outfile = file_out(here("02_clustering/all_orfs.nhr"))
+    outfile = file_out("02_clustering/all_orfs.nhr")
   ),
   
   # Blast transcriptomes against database
   blast_transcriptome = baitfindR::blast_n(
-    query = file_in(here("02_clustering/transcriptome__.cds.fa.cdhitest")),
-    database = here("02_clustering/all_orfs"),
-    out_file = file_out(here("02_clustering/transcriptome__.allbyall.blast.outfmt6")),
+    query = file_in("02_clustering/transcriptome__.cds.fa.cdhitest"),
+    database = "02_clustering/all_orfs",
+    out_file = file_out("02_clustering/transcriptome__.allbyall.blast.outfmt6"),
     other_args = c("-evalue 10", "-num_threads 1", "-max_target_seqs 1000"),
-    depends = file_in(here("02_clustering/all_orfs.nhr"))
+    depends = file_in("02_clustering/all_orfs.nhr")
   )
 ) %>% 
   evaluate_plan(rules = list(transcriptome__ = codes))
@@ -115,7 +115,7 @@ run_allbyall_blast <- drake_plan(
 # Concatenate output of single blast results
 concatenate_allbyall_blast <- 
   drake_plan(
-    read_blast = readr::read_file(file_in(here("02_clustering/transcriptome__.allbyall.blast.outfmt6")))
+    read_blast = readr::read_file(file_in("02_clustering/transcriptome__.allbyall.blast.outfmt6"))
   ) %>%
   evaluate_plan(rules = list(transcriptome__ = codes)) %>%
   bind_plans(gather_plan(., target = "cdhitestblast_files")) %>%
@@ -123,7 +123,7 @@ concatenate_allbyall_blast <-
     drake_plan(
       combined_cdhitest = baitfindR::cat_files(
         cdhitestblast_files, 
-        output_file=file_out(here("02_clustering/all.rawblast"))
+        output_file=file_out("02_clustering/all.rawblast")
       )
     )
   )
@@ -134,26 +134,26 @@ run_mcl <- drake_plan (
   
   # Prepare all by all blast results for mcl
   blast_formatted_for_mcl = baitfindR::blast_to_mcl(
-    blast_results = file_in(here("02_clustering/all.rawblast")),
+    blast_results = file_in("02_clustering/all.rawblast"),
     hit_fraction_cutoff = my_hit_frac,
-    outfile = file_out(here("02_clustering/all.rawblast.hit-frac`my_hit_frac`.minusLogEvalue"))
+    outfile = file_out("02_clustering/all.rawblast.hit-frac`my_hit_frac`.minusLogEvalue")
     ),
   
   # Run mcl
   mcl_clusters = baitfindR::mcl(
-    mcl_input = file_in(here("02_clustering/all.rawblast.hit-frac`my_hit_frac`.minusLogEvalue")),
+    mcl_input = file_in("02_clustering/all.rawblast.hit-frac`my_hit_frac`.minusLogEvalue"),
     i_value = my_i_value,
     e_value = 5,
     other_args = c("--abc", "-te", "2"),
-    mcl_output = file_out(here("02_clustering/hit-frac`my_hit_frac`_I`my_i_value`_e5"))
+    mcl_output = file_out("02_clustering/hit-frac`my_hit_frac`_I`my_i_value`_e5")
     ),
   
   # Write fasta files for each cluster from mcl output to 03_clusters/
   fasta_clusters = baitfindR::write_fasta_files_from_mcl(
-    all_fasta = file_in(here("02_clustering/all_orfs.fa")),
-    mcl_outfile = file_in(here("02_clustering/hit-frac`my_hit_frac`_I`my_i_value`_e5")),
+    all_fasta = file_in("02_clustering/all_orfs.fa"),
+    mcl_outfile = file_in("02_clustering/hit-frac`my_hit_frac`_I`my_i_value`_e5"),
     minimal_taxa = 4,
-    outdir = here("03_clusters"),
+    outdir = "03_clusters",
     get_hash = TRUE,
     overwrite = TRUE
     ), 
@@ -162,7 +162,7 @@ run_mcl <- drake_plan (
   # ("basic trees" which will be further pruned downstream)
   basic_trees = baitfindR::fasta_to_tree(
     overwrite = TRUE,
-    seq_folder = here("03_clusters/"),
+    seq_folder = "03_clusters/",
     number_cores = 1,
     seq_type = "dna",
     bootstrap = FALSE,
@@ -180,7 +180,7 @@ sort_homologs_orthologs <- drake_plan(
   
   # Trip extremely long tips from tree
   trimmed_trees = baitfindR::trim_tips(
-    tree_folder = here("03_clusters"), 
+    tree_folder = "03_clusters", 
     tree_file_ending = ".tre",
     relative_cutoff = 0.2,
     absolute_cutoff = 0.4, 
@@ -189,31 +189,31 @@ sort_homologs_orthologs <- drake_plan(
   
   # Retain only one tip per taxon
   masked_trees = baitfindR::mask_tips_by_taxonID_transcripts(
-    tree_folder = here("03_clusters"),
-    aln_folder = here("03_clusters"),
+    tree_folder = "03_clusters",
+    aln_folder = "03_clusters",
     depends = trimmed_trees),
   
   # Break up homolog tree into orthologs by cutting 
   # at long internal branches
   homolog_trees = baitfindR::cut_long_internal_branches( 
-    tree_folder = here("03_clusters/"),
+    tree_folder = "03_clusters/",
     tree_file_ending = ".mm",
     internal_branch_length_cutoff = 0.3,
     minimal_taxa = 4,
-    outdir = here::here("04_homologs/"),
+    outdir = "04_homologs/",
     depends = masked_trees),
   
   # Write out sequences from trees
   homolog_seqs = baitfindR::write_fasta_files_from_trees(
-    all_fasta = here::here("02_clustering/all_orfs.fa"),
-    tree_folder = here::here("04_homologs"),
+    all_fasta = "02_clustering/all_orfs.fa",
+    tree_folder = "04_homologs",
     tree_file_ending = ".subtree",
-    outdir = here::here("04_homologs"),
+    outdir = "04_homologs",
     depends = homolog_trees),
   
   # Reassemble these into trees
   homolog_clean_trees = baitfindR::fasta_to_tree(
-    seq_folder = here::here("04_homologs"),
+    seq_folder = "04_homologs",
     number_cores = 1,
     seq_type = "dna",
     bootstrap = FALSE,
@@ -222,18 +222,18 @@ sort_homologs_orthologs <- drake_plan(
   
   # Prune orthologs using "1-to-1" method
   ortho_121_trees = baitfindR::filter_1to1_orthologs(
-    tree_folder = here::here("04_homologs"), 
+    tree_folder = "04_homologs", 
     tree_file_ending = ".tre",
     minimal_taxa = 3,
-    outdir = here::here("05_orthologs/tre"),
+    outdir = "05_orthologs/tre",
     overwrite = TRUE,
     depends = homolog_clean_trees), 
   
   # Write out orthologs
   ortholog_fasta = baitfindR::write_ortholog_fasta_files( 
-    all_fasta = file_in(here::here("02_clustering/all_orfs.fa")),
-    tree_folder = here::here("05_orthologs/tre"),
-    outdir = here::here("05_orthologs/fasta"),
+    all_fasta = file_in("02_clustering/all_orfs.fa"),
+    tree_folder = "05_orthologs/tre",
+    outdir = "05_orthologs/fasta",
     minimal_taxa = 3,
     overwrite = TRUE,
     depends = ortho_121_trees)
@@ -252,27 +252,27 @@ mask_genes <- drake_plan (
     source_select = get_sources("genome_list"),
     prefix = "genome_list",
     out_type = "write_all",
-    out_dir = here::here("06_intron_masking"),
+    out_dir = "06_intron_masking",
     depends = ortholog_fasta,
     output = c(
-      file_out(here::here("06_intron_masking/genome_list_genes")),
-      file_out(here::here("06_intron_masking/genome_list_introns")),
-      file_out(here::here("06_intron_masking/genome_list_exons"))
+      file_out("06_intron_masking/genome_list_genes"),
+      file_out("06_intron_masking/genome_list_introns"),
+      file_out("06_intron_masking/genome_list_exons")
     )
   ),
   
   # Mask introns in reference genomes
   masked_genome = mask_regions_in_fasta(
-    bed_file = file_in(here::here("06_intron_masking/genome_list_introns")),
+    bed_file = file_in("06_intron_masking/genome_list_introns"),
     fasta_file = get_genome("genome_list"),
-    out_fasta_file = file_out(here::here("06_intron_masking/genome_list_masked"))
+    out_fasta_file = file_out("06_intron_masking/genome_list_masked")
   ),
   
   # Extract intron-masked genes from genomes
   masked_genes = extract_regions_from_fasta(
-    bed_file = file_in(here::here("06_intron_masking/genome_list_genes")),
-    fasta_file = file_in(here::here("06_intron_masking/genome_list_masked")),
-    out_fasta_file = file_out(here::here("06_intron_masking/genome_list_masked_genes"))
+    bed_file = file_in("06_intron_masking/genome_list_genes"),
+    fasta_file = file_in("06_intron_masking/genome_list_masked"),
+    out_fasta_file = file_out("06_intron_masking/genome_list_masked_genes")
   )
 ) %>%
   evaluate_plan(
@@ -282,7 +282,7 @@ mask_genes <- drake_plan (
 # Concatenate all the intron-masked genes into a single file
 concatenate_masked_genes <- 
   drake_plan(
-    read = readr::read_file(file_in(here::here("06_intron_masking/genome_list_masked_genes")))
+    read = readr::read_file(file_in("06_intron_masking/genome_list_masked_genes"))
   ) %>%
   evaluate_plan(
     wildcard = "genome_list",
@@ -292,7 +292,7 @@ concatenate_masked_genes <-
     drake_plan(
       concatenate = baitfindR::cat_files(
         masked_gene_files, 
-        output_file=file_out(here::here("06_intron_masking/all_masked_genes"))
+        output_file=file_out("06_intron_masking/all_masked_genes")
       )
     )
   )
@@ -300,11 +300,11 @@ concatenate_masked_genes <-
 # Make blast-db of masked genes
 make_masked_genes_blast_db <- drake_plan(
   masked_db = baitfindR::build_blast_db(
-    in_seqs = file_in(here::here("06_intron_masking/all_masked_genes") ),
-    out_name = here::here("06_intron_masking/masked_genes"),
+    in_seqs = file_in("06_intron_masking/all_masked_genes"),
+    out_name = "06_intron_masking/masked_genes",
     other_args = "-parse_seqids",
     db_type = "nucl",
-    outfile = file_out(here::here("06_intron_masking/masked_genes.nhr")))
+    outfile = file_out("06_intron_masking/masked_genes.nhr"))
 )
 
 # Mask introns in baits, filter final baits
@@ -314,21 +314,21 @@ mask_and_filter_baits <- drake_plan (
   # (each alignment must contain at least
   # one sample per ingroup family)
   family_filtered_baits = baitfindR::filter_fasta(
-    seq_folder = here::here("05_orthologs/fasta"),
+    seq_folder = "05_orthologs/fasta",
     taxonomy_data = onekp_data,
     filter_col = "family",
     sample_col = "code",
-    depends1 = file_in(here::here("06_intron_masking/masked_genes.nhr")),
+    depends1 = file_in("06_intron_masking/masked_genes.nhr"),
     depends2 = ortholog_fasta),
   
   # Write out unaligned, family-filtered baits
   family_filtered_baits_out = write_fasta_files(
     fasta_list = family_filtered_baits,
-    out_dir = here::here("06_intron_masking/taxonomy_filtered")),
+    out_dir = "06_intron_masking/taxonomy_filtered"),
   
   # Align family-filtered baits in folder
   aligned_baits = baitfindR::mafft_wrapper(
-    fasta_folder = here::here("06_intron_masking/taxonomy_filtered"),
+    fasta_folder = "06_intron_masking/taxonomy_filtered",
     number_cores = 2,
     overwrite = TRUE,
     get_hash = TRUE,
@@ -337,33 +337,33 @@ mask_and_filter_baits <- drake_plan (
   
   # Clean up alignments in folder
   cleaned_aligned_baits = baitfindR::phyutility_wrapper(
-    fasta_folder = here::here("06_intron_masking/taxonomy_filtered"),
+    fasta_folder = "06_intron_masking/taxonomy_filtered",
     min_col_occup = 0.3,
     overwrite = TRUE,
     depends = aligned_baits),
   
   # Blast clean, aligned baits against intron-masked genes
   blast_baits = blastn_list(
-    fasta_folder = here::here("06_intron_masking/taxonomy_filtered"),
+    fasta_folder = "06_intron_masking/taxonomy_filtered",
     fasta_ending = "\\.aln-cln$",
-    database = here::here("06_intron_masking/masked_genes"),
+    database = "06_intron_masking/masked_genes",
     overwrite = TRUE,
     depends = cleaned_aligned_baits
   ),
   
   # Extract top blast hit for each bait
   best_hits = extract_blast_hits(
-    blast_db = here::here("06_intron_masking/masked_genes"),
-    out_dir = here::here("06_intron_masking/blast_filtered/"),
-    blast_results_folder = here::here("06_intron_masking/taxonomy_filtered/"),
+    blast_db = "06_intron_masking/masked_genes",
+    out_dir = "06_intron_masking/blast_filtered/",
+    blast_results_folder = "06_intron_masking/taxonomy_filtered/",
     blast_results_ending = "\\.outfmt6$",
     depends = blast_baits
   ),
   
   # Re-align filtered baits with top blast hits
   combined_alignments = realign_with_best_hits(
-    blast_filtered_folder = here::here("06_intron_masking/blast_filtered"),
-    taxonomy_filtered_folder = here::here("06_intron_masking/taxonomy_filtered"),
+    blast_filtered_folder = "06_intron_masking/blast_filtered",
+    taxonomy_filtered_folder = "06_intron_masking/taxonomy_filtered",
     depends = best_hits
   ),
   
@@ -384,16 +384,16 @@ mask_and_filter_baits <- drake_plan (
     fasta_list = final_baits_data$alignment,
     fasta_names = final_baits_data$bait_id,
     suffix = ".fasta",
-    out_dir = here::here("07_baits"))
+    out_dir = "07_baits")
 
 )
 
 # Output report
 write_report <- drake_plan(
   report = rmarkdown::render(
-    knitr_in(here::here("report.Rmd")),
+    knitr_in("report.Rmd"),
     output_format = "html_document",
-    output_file = file_out(here::here("report.html")),
+    output_file = file_out("report.html"),
     quiet = TRUE))
 
 main_plan <- bind_plans(build_blastp_db, 
