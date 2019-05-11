@@ -262,19 +262,17 @@ mask_genes <- drake_plan (
   ),
   
   # Mask introns in reference genomes
-  masked_genome = mask_genome(
-    introns_file = file_in(here::here("06_intron_masking/genome_list_introns")),
-    genome_file = get_genome("genome_list"),
-    masked_genome_file = file_out(here::here("06_intron_masking/genome_list_masked")),
-    wd = here::here("06_intron_masking")
+  masked_genome = mask_regions_in_fasta(
+    bed_file = file_in(here::here("06_intron_masking/genome_list_introns")),
+    fasta_file = get_genome("genome_list"),
+    out_fasta_file = file_out(here::here("06_intron_masking/genome_list_masked"))
   ),
   
   # Extract intron-masked genes from genomes
-  masked_genes = extract_masked_genes(
-    genes_file = file_in(here::here("06_intron_masking/genome_list_genes")),
-    masked_genome_file = file_in(here::here("06_intron_masking/genome_list_masked")),
-    masked_genes_file = file_out(here::here("06_intron_masking/genome_list_masked_genes")),
-    wd = here::here("06_intron_masking")
+  masked_genes = extract_regions_from_fasta(
+    bed_file = file_in(here::here("06_intron_masking/genome_list_genes")),
+    fasta_file = file_in(here::here("06_intron_masking/genome_list_masked")),
+    out_fasta_file = file_out(here::here("06_intron_masking/genome_list_masked_genes"))
   )
 ) %>%
   evaluate_plan(

@@ -175,53 +175,90 @@ get_sources <- function (genome) {
   )
 }
 
-# Extract masked genes from a genome
-extract_masked_genes <- function (genes_file, masked_genome_file, masked_genes_file, wd = here::here(), ...) {
+#' Extract regions from a fasta file
+#' 
+#' Wrapper for bedtools getfasta.
+#'
+#' @param bed_file Path to bed file with locations of regions to extract.
+#' bed file is a tab-separated file with columns for chromosome (e.g., chr1), 
+#' start position (e.g., 1), and end position (e.g., 10), in that order. 
+#' No column headers are used.
+#' @param fasta_file Path to file in fasta format to extract regions from.
+#' @param out_fasta_file Path to write extracted regions (in fasta format).
+#' @param ... 
+#' @return List; output of processx::run(). Externally, a fasta file will be
+#' written to the path specified by `out_fasta_file`.
+#' @author Joel H Nitta, \email{joelnitta@@gmail.com}
+#' @examples
+#' extract_regions_from_fasta(
+#'   bed_file = "temp_dir/test_genes"
+#'   fasta_file = "data_raw/Arabidopsis_thaliana.TAIR10.dna.toplevel.renamed.fasta"
+#'   out_fasta_file = "temp_dir/test_masked_genes"
+#' )
+#' @export
+extract_regions_from_fasta <- function (bed_file, fasta_file, out_fasta_file, ...) {
   
-  genes <- read_tsv(genes_file, col_names = c("chr", "start", "end"), col_types = "cdd")
+  # Check input
+  assertthat::assert_that(assertthat::is.string(bed_file))
+  bed_file <- fs::path_abs(bed_file)
+  assertthat::assert_that(assertthat::is.readable(bed_file))
   
-  if (!(check_bed_genome_names(masked_genome_file, genes))) {
-    stop ("Names don't match between bed file and genome fasta headers")
+  assertthat::assert_that(assertthat::is.string(fasta_file))
+  fasta_file <- fs::path_abs(fasta_file)
+  assertthat::assert_that(assertthat::is.readable(fasta_file))
+  
+  assertthat::assert_that(assertthat::is.string(out_fasta_file))
+  out_fasta_file <- fs::path_abs(out_fasta_file)
+  assertthat::assert_that(assertthat::is.dir(fs::path_dir(out_fasta_file)))
+
+  bed <- readr::read_tsv(bed_file, col_names = c("chr", "start", "end"), col_types = "cdd")
+  
+  checkr::check_data(
+    bed,
+    values = list(
+      chr = "a",
+      start = 1,
+      end = 1
+    ),
+    order = TRUE)
+  
+  if (!(check_bed_genome_names(fasta_file, bed))) {
+    stop ("Names don't match between bed file and fasta file headers")
   }
   
-  wd <- jntools::add_slash(wd)
-  
-  script_file <- glue::glue('{wd}{digest::digest(genes)}.sh')
-  
-  make_bash_script(
-    script = script_file,
-    command = "bedtools getfasta",
-    arguments = glue::glue("-fi {masked_genome_file} -bed {genes_file} -fo {masked_genes_file} -s"),
-    # The -s preserves the strandedness of the sequence. 
-    # The reverse-complement is written for the + strand. 
-    wd = wd
+  # Run bedtools getfasta
+  processx::run(
+    command = "bedtools",
+    args = c(
+      "getfasta",
+      "-fi", fasta_file,
+      "-bed", bed_file,
+      "-fo", out_fasta_file
+    ),
+    echo = TRUE
   )
   
-  run_bash_script(
-    script = script_file
-  )
-  
-  # Remove temporary script files
-  if (file.exists(script_file)) {file.remove(script_file)}
 }
 
-#' Mask introns in a genome
+#' Mask regions in a fasta file.
 #'
-#' @param introns_file Path to bed file with locations of introns in genome.
-#' (bed file is a tab-separated file with columns for "chr" (chromosome), "start",
-#' and "end", in that order).
-#' @param genome_file Path to full genome file in fasta format.
-#' @param masked_genome_file Path to write genome file with introns masked.
-#' @param wd Working directory. A temporary bash script will be written and 
-#' executed here.
-#' @param ... Other arguments not used by this function but meant for tracking
-#' with drake.
-#'
-#' @return
-#' @export
-#'
-#' @examples
+#' Wrapper for bedtools maskfasta.
 #' 
+#' All regions of the `fasta_file` specified by the `bed_file` will be
+#' replaced ("hard-masked") with 'N's.
+#' 
+#' The bed file is a tab-separated file with columns for chromosome (e.g., chr1), 
+#' start position (e.g., 1), and end position (e.g., 10), in that order. 
+#' No column headers are used.
+#'
+#' @param bed_file Path to bed file with locations of regions to mask.
+#' @param fasta_file Path to unmasked fasta file.
+#' @param out_fasta_file Path to write masked fasta file.
+#' @param ... 
+#' @return List; output of processx::run(). Externally, a fasta file will be
+#' written to the path specified by `out_fasta_file`.
+#' @author Joel H Nitta, \email{joelnitta@@gmail.com}
+#' @examples
 #' # First write genes, introns, and exons out as tsv files
 #' 
 #' dir.create("temp_dir")
@@ -233,27 +270,32 @@ extract_masked_genes <- function (genes_file, masked_genome_file, masked_genes_f
 #'   prefix = "test"
 #' )
 #' 
-#' # Now mask the genome, using the intron and genome files.
+#' # Now mask the genome, using the bed file and genome fasta file.
 #' mask_genome(
-#'   introns_file = "temp_dir/test_introns",
-#'   genome_file = "data_raw/Arabidopsis_thaliana.TAIR10.dna.toplevel.renamed.fasta",
-#'   masked_genome_file = "temp_dir/test_masked"
+#'   bed_file = "temp_dir/test_introns",
+#'   fasta_file = "data_raw/Arabidopsis_thaliana.TAIR10.dna.toplevel.renamed.fasta",
+#'   out_fasta_file = "temp_dir/test_masked"
 #' )
-mask_genome <- function (introns_file, genome_file, masked_genome_file, wd = here::here(), ...) {
+#' @export
+mask_regions_in_fasta <- function (bed_file, fasta_file, out_fasta_file, ...) {
   
   # Check input
-  assertthat::assert_that(assertthat::is.string(introns_file))
-  introns_file <- fs::path_abs(introns_file)
-  assertthat::assert_that(assertthat::is.readable(introns_file))
+  assertthat::assert_that(assertthat::is.string(bed_file))
+  bed_file <- fs::path_abs(bed_file)
+  assertthat::assert_that(assertthat::is.readable(bed_file))
   
-  assertthat::assert_that(assertthat::is.string(genome_file))
-  genome_file <- fs::path_abs(genome_file)
-  assertthat::assert_that(assertthat::is.readable(genome_file))
+  assertthat::assert_that(assertthat::is.string(fasta_file))
+  fasta_file <- fs::path_abs(fasta_file)
+  assertthat::assert_that(assertthat::is.readable(fasta_file))
   
-  introns <- readr::read_tsv(introns_file, col_names = c("chr", "start", "end"), col_types = "cdd")
+  assertthat::assert_that(assertthat::is.string(out_fasta_file))
+  out_fasta_file <- fs::path_abs(out_fasta_file)
+  assertthat::assert_that(assertthat::is.dir(fs::path_dir(out_fasta_file)))
+  
+  bed <- readr::read_tsv(bed_file, col_names = c("chr", "start", "end"), col_types = "cdd")
   
   checkr::check_data(
-    introns,
+    bed,
     values = list(
       chr = "a",
       start = 1,
@@ -261,29 +303,22 @@ mask_genome <- function (introns_file, genome_file, masked_genome_file, wd = her
     ),
     order = TRUE)
   
-  if (!(check_bed_genome_names(genome_file, introns))) {
-    stop ("Names don't match between bed file and genome fasta headers")
+  if (!(check_bed_genome_names(fasta_file, bed))) {
+    stop ("Names don't match between bed file and fasta file headers")
   }
   
-  wd <- fs::path_abs(wd)
-
-  # Make path for script file based on digest of introns.
-  script_file <- fs::path(wd, digest::digest(introns), ext = "sh")
-  
-  # Write out script file.
-  make_bash_script(
-    script = script_file,
-    command = "bedtools maskfasta",
-    arguments = glue::glue("-fi {genome_file} -bed {introns_file} -fo {masked_genome_file}"),
-    wd = wd
+  # Run bedtools maskfasta
+  processx::run(
+    command = "bedtools",
+    args = c(
+      "maskfasta",
+      "-fi", fasta_file,
+      "-bed", bed_file,
+      "-fo", out_fasta_file
+    ),
+    echo = TRUE
   )
   
-  run_bash_script(
-    script = script_file
-  )
-  
-  # Remove temporary script files
-  if (file.exists(script_file)) {file.remove(script_file)}
 }
 
 #' Clean up data from a gff file and
@@ -342,11 +377,10 @@ clean_gff <- function (region, check.chr = FALSE, verbose = FALSE) {
 #' @param prefix String; prefix to attach to tsv files if `out_type` is 
 #' "write_all".
 #' @param out_dir Directory to write tsv files if `out_type` is "write_all".
-#' @param ... Other arguments not used by this function but meant for tracking
-#' with drake.
-#'
+#' @param  ... Other arguments. Not used by this function, but meant to 
+#' be used by \code{\link[drake]{drake_plan}} for tracking during workflows.
 #' @return Dataframe or character.
-#'
+#' @author Joel H Nitta, \email{joelnitta@@gmail.com}
 #' @examples
 #' # Find genes
 #' genes <- find_bed_regions(
