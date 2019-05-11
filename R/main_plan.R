@@ -9,9 +9,10 @@
 build_blastp_db <- drake_plan(
   blastp_database = baitfindR::build_blast_db(
     in_seqs = file_in("data/combined_proteomes.fasta"), 
-    out_name = "01_translation/combined_proteomes", 
+    out_name = "combined_proteomes", 
     db_type = "prot", 
-    other_args = "-parse_seqids",
+    parse_seqids = TRUE,
+    wd = "01_translation",
     outfile = file_out("01_translation/combined_proteomes.phr")
   )
 )
