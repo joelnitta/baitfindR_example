@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.Rstudio
 .drake
 .DS_Store
 *.html
