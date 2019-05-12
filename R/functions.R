@@ -1,33 +1,5 @@
 # Data import -------------------------------------------------------------
 
-# Randomly downsize transcriptome to make smaller dataset for testing
-downsize_transcriptome <- function (file, keep_frac) {
-  # Read in file. Use bzfile() because it's compressed
-  seq <- read.dna(bzfile(file), format="fasta")
-  # Randomly downsize to specified fraction of transcripts
-  seq <- seq[sample(1:length(seq), keep_frac*length(seq))]
-}
-
-
-#' Downsize a file from the top
-#' 
-#' Only the lines specified from the first to the fraction
-#' of the file specified by `keep_frac` will be kept.
-#'
-#' @param full_file Path to input file
-#' @param path Path to write out downsized file
-#' @param keep_frac Fraction of file to retain
-#'
-#' @return NULL
-downsize_simple <- function(full_file, path, keep_frac) {
-  
-  full <- readr::read_lines(full_file)
-  short <- full[1:round(length(full)*keep_frac, 0)]
-  readr::write_lines(short, path)
-  
-}
-
-
 # Untar with tracking
 untar_tracked <- function (tarfile, exdir, ...) {
   untar(tarfile = tarfile, exdir = exdir)
@@ -40,45 +12,6 @@ trim_proteome <- function (proteome) {
   trimmed_proteome <- proteome[!(names(proteome) %in% dup_names)]
   return(trimmed_proteome)
 }
-
-# count_seqs
-# Count the number of sequences per alignment in a list of aligments
-# Returns a dataframe of counts: the frequency of alignments containing 
-# that many sequences. "method" can be added to specify the method used
-# to generate the alignments. Optionally include an ingroup to only count
-# the number of ingroup sequences.
-count_seqs <- function (alignments, ingroup = NULL, method = NULL) {
-  
-  # so we can feed method into dplyr
-  method <- enquo(method)
-  
-  # define function to only count number of ingroup sequences
-  count_ingroup_seqs <- function (alignments, ingroup) {
-    purrr::map_dbl(alignments, function (x) {
-      x <- as.list(x)
-      length(names(x)[names(x) %in% ingroup])
-    }
-    )
-  }
-  
-  # get the raw count of sequences
-  if (is.null(ingroup)) {
-    raw_count <- map_dbl(alignments, length)
-  } else if (is.character(ingroup) && length(ingroup) > 0) {
-    raw_count <- count_ingroup_seqs(alignments = alignments, ingroup = ingroup)
-  } else {
-    stop ("ingroup must be null or a character vector")
-  }
-  
-  # convert to tibble
-  raw_count %>%
-    as_tibble %>% 
-    select(num_ingroup_seqs = value) %>% 
-    group_by(num_ingroup_seqs) %>% 
-    summarize(freq=n()) %>% 
-    mutate(method = !! method)
-}
-
 
 # Report functions --------------------------------------------------------
 
