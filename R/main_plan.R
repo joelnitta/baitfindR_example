@@ -9,8 +9,8 @@
 build_blastp_db <- drake_plan(
   blastp_database = baitfindR::build_blast_db(
     in_seqs = file_in("data/combined_proteomes.fasta"), 
-    out_name = "combined_proteomes", 
-    db_type = "prot", 
+    db_type = "prot",
+    out_name = "combined_proteomes",
     parse_seqids = TRUE,
     wd = "01_translation",
     outfile = file_out("01_translation/combined_proteomes.phr")
@@ -96,9 +96,9 @@ run_allbyall_blast <- drake_plan(
   # Make all-by-all database including all ORFs
   all_blast_db = baitfindR::build_blast_db(
     in_seqs = file_in("02_clustering/all_orfs.fa"),
-    out_name = "02_clustering/all_orfs",
-    other_args = NULL,
     db_type = "nucl",
+    out_name = "all_orfs",
+    wd = "02_clustering",
     outfile = file_out("02_clustering/all_orfs.nhr")
   ),
   
@@ -302,9 +302,10 @@ concatenate_masked_genes <-
 make_masked_genes_blast_db <- drake_plan(
   masked_db = baitfindR::build_blast_db(
     in_seqs = file_in("06_intron_masking/all_masked_genes"),
-    out_name = "06_intron_masking/masked_genes",
-    other_args = "-parse_seqids",
     db_type = "nucl",
+    out_name = "masked_genes",
+    parse_seqids = TRUE,
+    wd = "06_intron_masking",
     outfile = file_out("06_intron_masking/masked_genes.nhr"))
 )
 
