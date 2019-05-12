@@ -29,8 +29,8 @@ downsize_simple <- function(full_file, path, keep_frac) {
 
 
 # Untar with tracking
-untar_tracked <- function (tarfile, compressed, exdir, ...) {
-  untar(tarfile = tarfile, compressed = compressed, exdir = exdir)
+untar_tracked <- function (tarfile, exdir, ...) {
+  untar(tarfile = tarfile, exdir = exdir)
 }
 
 # For some reason there are a bunch of duplicate names with
