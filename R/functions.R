@@ -1,5 +1,33 @@
 # Data import -------------------------------------------------------------
 
+# Make a table of oneKp sample codes and URLs to download transcriptome assemblies.
+make_download_table <- function(url = "http://www.onekp.com/public_data.html") {
+  
+  # Scrape oneKp links for assemblies.
+  # Use Selectorgadget to identify the CSS component with links.
+  # Note: run vignette(“selectorgadget”) for a refresher on how to do this.
+  links <- xml2::read_html(url) %>% rvest::html_nodes("td:nth-child(5) a")
+  
+  # Next, read in the main table (just plain text, without links).
+  tbls_xml <- XML::readHTMLTable(url)
+  
+  # Extract the table and add links to assemblies,
+  # keeping only transcriptomes in baitfindR example dataset .
+  tbls_xml[[1]] %>% 
+    tibble::as_tibble() %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(assembly_link = map_chr(links, xml_attrs)) %>%
+    dplyr::select(code = `1kP_Code`, assembly_link)
+}
+
+# Downsize a transcriptome file
+downsize_transcriptome <- function (file, keep_frac) {
+  # Read in file. Use bzfile() because it's compressed
+  seq <- ape::read.FASTA(bzfile(file))
+  # Randomly downsize to specified fraction of transcripts
+  seq <- seq[sample(1:length(seq), keep_frac*length(seq))]
+}
+
 # Untar with tracking
 untar_tracked <- function (tarfile, exdir, ...) {
   untar(tarfile = tarfile, exdir = exdir)

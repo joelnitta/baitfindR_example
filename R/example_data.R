@@ -2,7 +2,34 @@
 
 # drake plan to download and pre-process data for this example analysis
 
-example_data_plan <- drake_plan(
+# Download and process transcriptomes ----
+transcriptomes_plan <- drake_plan(
+  
+  onekp_download_table = make_download_table("http://www.onekp.com/public_data.html"),
+  
+  # Download transcriptome assemblies from oneKp data site
+  download = download.file(
+    url = onekp_download_table %>% dplyr::filter(code == "transcriptome__") %>% pull(assembly_link),
+    destfile = file_out("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")
+  ),
+  
+  # Downsize each to 10% of original size
+  downsize = downsize_transcriptome(
+    file = file_in("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2"),
+    keep_frac = 0.10
+  ),
+  
+  # Write out downsized transcriptomes to data folder
+  small_transcriptome = ape::write.FASTA(
+    x = downsize_transcriptome__, 
+    file = file_out("data/transcriptome__")
+  )
+  
+) %>%
+  evaluate_plan(rules = list(transcriptome__ = codes))
+
+# Other data (genomes, proteomes, and annotations)
+other_data_plan <- drake_plan(
   
   # Download genomes and annotations ----
   
@@ -45,23 +72,6 @@ example_data_plan <- drake_plan(
     url = "ftp://ftp.fernbase.org/Salvinia_cucullata/Salvinia_asm_v1.2/Salvinia_cucullata.genome_v1.2.fasta",
     destfile = file_out("data_raw/Salvinia_cucullata.genome_v1.2.fasta")
   ), 
-  
-  # Write out example transcriptomes ----
-  
-  # baitfindR includes a list of 8 example transcriptomes, but data() cannot be
-  # called from within a drake plan.
-  # So write these out to data_raw before running make() as follows:
-  # data(example_transcriptomes, package = "baitfindR")
-  # saveRDS(example_transcriptomes, "data_raw/example_transcriptomes.rds")
-  
-  example_transcriptomes = readRDS(file_in("data_raw/example_transcriptomes.rds")),
-  
-  # Write out transcriptomes
-  write_example_transcriptomes = purrr::walk2(
-    example_transcriptomes,
-    fs::path("data", names(example_transcriptomes)),
-    ~ ape::write.FASTA(x = .x, file = .y)
-  ),
   
   # Download and process proteomes ----
   
@@ -132,3 +142,5 @@ example_data_plan <- drake_plan(
     file = file_out("data/combined_proteomes.fasta")
   )
 )
+
+example_data_plan <- bind_plans(other_data_plan, transcriptomes_plan)
