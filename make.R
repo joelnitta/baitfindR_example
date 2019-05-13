@@ -22,6 +22,9 @@ source("R/functions.R")
 
 ### Define basic input values
 
+# Set seed for reproducibility
+set.seed(5394)
+
 # Vector of 4-letter transcriptome codes.
 # These will be downloaded from the 1KP website. 
 # Here we use a subset of eupolypod II ferns including 
