@@ -1,0 +1,98 @@
+---
+title: "make_small_transcriptomes"
+author: "Joel Nitta"
+date: "5/12/2019"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Make small versions of transcriptome files for testing.
+
+The `baitfindR` package comes with the same set of transcriptomes downsized to 5%, but this is too small to generate gene clusters large enough to align trees (i.e., the resulting clusters each have less than four taxa).
+
+This script can be used to make transcriptomes randomly downsized to the fraction set by `keep_frac`.
+
+Load packages.
+
+```{r load-packages}
+library(rvest)
+library(tidyverse)
+library(XML)
+library(baitfindR)
+library(ape)
+```
+
+Define helper function for downsizing transcriptomes.
+
+```{r downsize-transcriptome}
+downsize_transcriptome <- function (file, keep_frac) {
+  # Read in file. Use bzfile() because it's compressed
+  seq <- ape::read.FASTA(bzfile(file))
+  # Randomly downsize to specified fraction of transcripts
+  seq <- seq[sample(1:length(seq), keep_frac*length(seq))]
+}
+```
+
+Scrape sample codes and URLs to download transcriptome assemblies from [oneKp website](http://www.onekp.com/public_data.html).
+
+```{r scrape-onekp}
+# First, scrape links contained within oneKp data website.
+
+# Set URL for oneKp data website
+url <- "http://www.onekp.com/public_data.html"
+
+# Scrape links for assemblies.
+# Use Selectorgadget to identify the CSS component with links.
+# Note: run vignette(“selectorgadget”) for a refresher on how to do this.
+links <- read_html(url) %>% html_nodes("td:nth-child(5) a")
+
+# Next, read in the main table (just plain text, without links).
+tbls_xml <- readHTMLTable(url)
+
+# Extract the table and add links to assemblies,
+# keeping only transcriptomes in baitfindR example dataset .
+onekp_download_data <- 
+  tbls_xml[[1]] %>% 
+  as_tibble %>%
+  mutate_all(as.character) %>%
+  mutate(assembly_link = map_chr(links, xml_attrs)) %>%
+  select(code = `1kP_Code`, assembly_link) %>%
+  filter(code %in% baitfindR::onekp_data$code)
+```
+
+Download transcriptomes.
+
+```{r download-transcriptomes}
+purrr::walk2(
+  .x = onekp_download_data$assembly_link, 
+  .y = here::here(
+    "data_raw", 
+    glue::glue("{onekp_download_data$code}-SOAPdenovo-Trans-assembly.fa.bz2")),
+  ~ download.file(url = .x, destfile = .y)
+)
+```
+
+Downsize transcriptomes.
+
+```{r downsize-transcriptomes}
+# Set fraction of transcriptome to keep
+keep_frac <- 0.10
+
+# Set seed
+set.seed(5394)
+
+# Downsize and write out transcriptomes as list.
+example_transcriptomes <-
+  purrr::map(
+    here::here(
+      "data_raw", 
+      glue::glue("{onekp_download_data$code}-SOAPdenovo-Trans-assembly.fa.bz2")) %>%
+      set_names(onekp_download_data$code),
+    ~ downsize_transcriptome(., keep_frac = keep_frac)
+  )
+
+saveRDS(example_transcriptomes, here::here("data/example_transcriptomes.RDS"))
+```
