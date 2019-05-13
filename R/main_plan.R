@@ -35,9 +35,11 @@ run_transdecoder <- drake_plan(
   # Blast candidate long ORFs against the protein database
   orf_blast = baitfindR::blast_p(
     query = file_in("01_translation/transcriptome__.transdecoder_dir/longest_orfs.pep"), 
-    database = "01_translation/combined_proteomes",
-    other_args = c("-max_target_seqs 1", "-evalue 10",  "-num_threads 2"),
-    out_file = file_out("01_translation/transcriptome__.blastp.outfmt6")
+    database = "combined_proteomes",
+    out_file = "transcriptome__.blastp.outfmt6",
+    other_args = c("-max_target_seqs", 1, "-evalue", 10,  "-num_threads", 2),
+    wd = "01_translation",
+    produces = file_out("01_translation/transcriptome__.blastp.outfmt6")
   ),
   
   # Output the final ORFs, preferentially retaining those with blast hits
@@ -105,10 +107,12 @@ run_allbyall_blast <- drake_plan(
   # Blast transcriptomes against database
   blast_transcriptome = baitfindR::blast_n(
     query = file_in("02_clustering/transcriptome__.cds.fa.cdhitest"),
-    database = "02_clustering/all_orfs",
-    out_file = file_out("02_clustering/transcriptome__.allbyall.blast.outfmt6"),
-    other_args = c("-evalue 10", "-num_threads 1", "-max_target_seqs 1000"),
-    depends = file_in("02_clustering/all_orfs.nhr")
+    database = "all_orfs",
+    out_file = "transcriptome__.allbyall.blast.outfmt6",
+    other_args = c("-evalue", 10, "-num_threads", 1, "-max_target_seqs", 1000),
+    wd = "02_clustering",
+    depends = file_in("02_clustering/all_orfs.nhr"),
+    produces = file_out("02_clustering/transcriptome__.allbyall.blast.outfmt6")
   )
 ) %>% 
   evaluate_plan(rules = list(transcriptome__ = codes))
