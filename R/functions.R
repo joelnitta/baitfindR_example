@@ -175,31 +175,100 @@ cat_ext_files <- function (input, output, wd = NULL, ...) {
                   wd))
 }
 
-# Write out a list of fasta files to a directory.
-# Optionally assign names to the files fasta_list isn't already named
-# or if you want to over-write the original names
-write_fasta_files <- function (fasta_list, fasta_names = NULL, out_dir, 
-                               suffix = NULL, prefix = NULL, get_hash = TRUE, 
+#' Write out a list of fasta files to a directory
+#'
+#' Optionally assign names to the files if fasta_list isn't already named
+#' or if you want to over-write the original names.
+#'
+#' @param fasta_list List of DNA sequences to write out. Each item in list
+#' must of class \code{\link[ape]{DNAbin}}.
+#' @param out_dir Path to directory to write out DNA sequences.
+#' @param fasta_names Optional character vector of file names to use when
+#' writing out DNA sequences.
+#' @param ext Optional character vector of length one; file extension to
+#' append to DNA sequences (e.g., "fasta").
+#' @param get_hash Logical; should the MD5 hash of `fasta_list` be returned? 
+#' @param ... Additional other arguments. Not used by this function,
+#' but meant to be used by \code{\link[drake]{drake_plan}} for tracking
+#' during workflows.
+#'
+#' @return None (invisible ‘NULL’) or character vector if `hash` is `TRUE`.
+#' Externally, fasta files will be written to `out_dir`.
+#'
+#' @examples
+#' # Load some example DNA sequences.
+#' library(ape)
+#' data(woodmouse) 
+#' 
+#' # Make a temporary working directory to write out files.
+#' temp_dir <- fs::dir_create(fs::path(tempdir(), "baitfindR_example"))
+#' 
+#' # Make list of DNA samples.
+#' dna_list <- list(a = woodmouse, b = woodmouse)
+#' 
+#' # Write out list:
+#' # names as-is
+#' write_fasta_files(dna_list, temp_dir)
+#' list.files(temp_dir)
+#' 
+#' # add extension
+#' write_fasta_files(dna_list, temp_dir, ext = "fasta")
+#' list.files(temp_dir)
+#' 
+#' # new names and extension
+#' write_fasta_files(
+#'   dna_list, 
+#'   temp_dir, 
+#'   fasta_names = c("ho", "ge"), 
+#'   ext = "fasta")
+#' list.files(temp_dir)
+#' 
+#' # Cleanup
+#' fs::file_delete(temp_dir)
+#' @export
+write_fasta_files <- function (fasta_list, out_dir, 
+                               fasta_names = NULL, ext = NULL, 
+                               get_hash = TRUE, 
                                ...) {
   
-  out_dir <- jntools::add_slash(out_dir)
+  require("magrittr") # for pipe
   
-  if (!is.null(fasta_names)) names(fasta_list) <- fasta_names
+  # Check input
+  assertthat::assert_that(is.logical(get_hash))
+  
+  assertthat::assert_that(is.list(fasta_list))
+  assertthat::assert_that(
+    unique(purrr::map_chr(fasta_list, class)) == "DNAbin",
+    msg = "All items in fasta_list must of class 'DNAbin'"
+  )
+  
+  assertthat::assert_that(assertthat::is.string(ext) | is.null(ext))
+  if(is.null(ext)) ext <- ""
+  
+  assertthat::assert_that(assertthat::is.string(out_dir))
+  out_dir <- fs::path_abs(out_dir)
+  assertthat::assert_that(assertthat::is.dir(out_dir))
   
   assertthat::assert_that(!is.null(fasta_names) | !is.null(names(fasta_list)),
                           msg = "fasta list must have names or fasta_names must
                           be provided")
   
+  # Set new names
+  if (!is.null(fasta_names)) {
+    assertthat::assert_that(
+      length(fasta_names) == length(fasta_list),
+      msg = "fasta_names and fasta_list must be of same length"
+    )
+    names(fasta_list) <- fasta_names
+  }
+  
+  # Write out fasta seqs
   fasta_list %>%
-    rlang::set_names(paste0(out_dir, prefix, names(.), suffix)) %>%
+    purrr::set_names(fs::path(out_dir, names(.), ext = ext)) %>%
     purrr::iwalk(ape::write.FASTA)
   
   # optional: get MD5 hash of output
-  if (isTRUE(get_hash)) {
-    output <- unlist(fasta_list)
-    hash <- digest::digest(output)
-    return(hash)
-  }
+  if (isTRUE(get_hash)) unlist(fasta_list) %>% digest::digest()
   
 }
 
