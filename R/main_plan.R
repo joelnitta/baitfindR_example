@@ -110,6 +110,7 @@ run_allbyall_blast <- drake_plan(
     database = "all_orfs",
     out_file = "transcriptome__.allbyall.blast.outfmt6",
     other_args = c("-evalue", 10, "-num_threads", 1, "-max_target_seqs", 1000),
+    outfmt = "6 qseqid qlen sseqid slen frames pident nident length mismatch gapopen qstart qend sstart send evalue bitscore",
     wd = "02_clustering",
     depends = file_in("02_clustering/all_orfs.nhr"),
     produces = file_out("02_clustering/transcriptome__.allbyall.blast.outfmt6")
