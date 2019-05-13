@@ -24,21 +24,18 @@ calculate_alignment_summary_stats <- function (folder, filter_term = "fa.mafft.a
   require(ips)
   require(here)
   require(stringr)
-  require(jntools)
   
   # for easier pasting
-  folder <- jntools::add_slash(folder)
+  folder <- fs::path_abs(folder)
   
   # get list of alignments in folder
-  alignment_files <- list.files(folder, pattern = filter_term)
-  
-  alignment_files <- paste0(folder, alignment_files)
+  alignment_files <- list.files(folder, pattern = filter_term, full.names = TRUE)
   
   # read in all alignments as list
-  alignments <- map(alignment_files, read.FASTA)
+  alignments <- purrr::map(alignment_files, ape::read.FASTA)
   
   # convert to matrix
-  alignments <- map(alignments, as.matrix)
+  alignments <- purrr::map(alignments, as.matrix)
   
   # optionally trim to only ingroup taxa
   if (!(is.null(ingroup))) {
@@ -48,7 +45,7 @@ calculate_alignment_summary_stats <- function (folder, filter_term = "fa.mafft.a
   }
   
   # calculate length of each alignment
-  length <- map_dbl(alignments, ncol)
+  length <- purrr::map_dbl(alignments, ncol)
   
   # function to calculate percent of each sequence in alignment that is non-gap characters
   calc_coverage <- function (align) {
@@ -69,7 +66,7 @@ calculate_alignment_summary_stats <- function (folder, filter_term = "fa.mafft.a
   }
   
   # use above function to calculate MEAN percentage coverage for each alignment
-  mean_coverage <- map_dbl(alignments, calc_mean_coverage)
+  mean_coverage <- purrr::map_dbl(alignments, calc_mean_coverage)
   
   # calculate number of sequences (in ingroup) per alignment
   num_seqs <- unlist(lapply(alignments, nrow))
@@ -279,8 +276,8 @@ write_fasta_files <- function (fasta_list, out_dir,
 realign_with_best_hits <- function (blast_filtered_folder, 
                                     taxonomy_filtered_folder, ...) {
   
-  blast_filtered_folder <- jntools::add_slash(blast_filtered_folder)
-  taxonomy_filtered_folder <- jntools::add_slash(taxonomy_filtered_folder)
+  blast_filtered_folder <- fs::path_abs(blast_filtered_folder)
+  taxonomy_filtered_folder <- fs::path_abs(taxonomy_filtered_folder)
 
   # Get names of fasta files of top blast hits (already 1 per alignment)
   blast_top_match_names <- 
@@ -294,51 +291,54 @@ realign_with_best_hits <- function (blast_filtered_folder,
   # Read in blast-filtered alignments (those with blast hits).
   blast_filtered_alignments <- 
     blast_top_match_names %>%
-    gsub(".outfmt6.bestmatch.fasta", "", ., fixed = TRUE) %>%
-    paste(taxonomy_filtered_folder, ., sep ="") %>%
-    map(ape::read.FASTA)
+    stringr::str_remove(".outfmt6.bestmatch.fasta") %>%
+    fs::path(taxonomy_filtered_folder, .) %>%
+    purrr::map(ape::read.FASTA)
   
   # Read in seqs of top blast hits
   blast_top_matches <- 
-    paste0(blast_filtered_folder, blast_top_match_names, sep ="") %>%
-    map(ape::read.FASTA)
+    fs::path(blast_filtered_folder, blast_top_match_names, sep ="") %>%
+    purrr::map(ape::read.FASTA)
   
   # combine and re-align blast-filtered alignments with their top matches
-  map2(blast_filtered_alignments, blast_top_matches, c) %>%
-    map(ips::mafft, path = "/usr/bin/mafft", options = "--adjustdirection") %>%
+  purrr::map2(blast_filtered_alignments, blast_top_matches, c) %>%
+    purrr::map(ips::mafft, path = "/usr/bin/mafft", options = "--adjustdirection") %>%
     rlang::set_names(blast_filtered_alignment_names)
 }
 
 # Run blast on all files with the same ending in a folder
 # Outputs to same folder containing input files (but we could change this)
-blastn_list <- function (fasta_folder, fasta_ending, database, other_args = NULL, overwrite = FALSE, get_hash = TRUE, ...) {
-  fasta_folder <- jntools::add_slash(fasta_folder)
+blastn_list <- function (fasta_folder, fasta_ending, database, wd, outfmt, other_args = NULL, overwrite = FALSE, get_hash = TRUE, ...) {
+  
+  fasta_folder <- fs::path_abs(fasta_folder)
   
   search_terms <- "\\.outfmt6$"
   
   # optional: delete all previous output written in this folder
   if (isTRUE(overwrite)) {
-    files_to_delete <- list.files(fasta_folder, pattern = search_terms)
+    files_to_delete <- list.files(fasta_folder, pattern = search_terms, full.names = TRUE)
     if (length(files_to_delete) > 0) {
-      files_to_delete <- paste0(fasta_folder, files_to_delete)
-      file.remove(files_to_delete)
+      fs::file_delete(files_to_delete)
     }
   }
   
   # list all fasta files in folder
-  fasta_files <- list.files(fasta_folder, pattern = fasta_ending)
-  fasta_list <- paste0(fasta_folder, fasta_files)
-  
+  fasta_files <- list.files(fasta_folder, pattern = fasta_ending, full.names = TRUE)
+
   # make list of results to write
-  results_list <- paste0(fasta_folder, fasta_files, ".outfmt6")
+  results_list <- fs::path(fasta_files, ext = "outfmt6")
   
   # loop over lists
-  walk2(fasta_list, results_list, blast_n, database = database, other_args = other_args)
+  purrr::walk2(
+    fasta_files, 
+    results_list,
+    ~ blast_n(query = .x, out_file = .y, wd = wd, database = database, outfmt = outfmt, other_args = other_args)
+  )
   
   # optional: return hash of results
   if (isTRUE(get_hash)) {
-    output <- list.files(fasta_folder, pattern = search_terms)
-    output <- if (length(output) > 0) {unlist(lapply(paste0(fasta_folder, output), readr::read_file))} else {output}
+    output <- list.files(fasta_folder, pattern = search_terms, full.names = TRUE)
+    output <- if (length(output) > 0) {unlist(lapply(output, readr::read_file))} else {output}
     hash <- digest::digest(output)
     return(hash)
   }
@@ -347,7 +347,7 @@ blastn_list <- function (fasta_folder, fasta_ending, database, other_args = NULL
 # Extract blast hits
 extract_blast_hits <- function (blast_results_folder, blast_results_ending, blast_db, out_dir, ...) {
   
-  out_dir <- jntools::add_slash(out_dir)
+  out_dir <- fs::path_abs(out_dir)
   
   # Make list of blastdbcmd calls to extract top blast hits
   calls <- 
@@ -358,7 +358,7 @@ extract_blast_hits <- function (blast_results_folder, blast_results_ending, blas
     # only keep best blast hit from each result
     map_df(slice, 1) %>%
     # format the command to extract the blast hit as a column
-    mutate(command = glue::glue('-db {blast_db} -entry "{sseqid}" > {out_dir}{file_name}.bestmatch.fasta')) %>%
+    mutate(command = glue::glue('-db {blast_db} -entry "{sseqid}" > {fs::path(out_dir, file_name)}.bestmatch.fasta')) %>%
     pull(command)
   
   make_bash_script(script_file = "extract_blast.sh",
@@ -382,12 +382,11 @@ filter_blast_results <- function (blast_results_folder, blast_results_ending) {
   
   outfmt6_headers <- c("qseqid", "qlen", "sseqid", "slen", "frames", "pident", "nident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
   
-  blast_results_folder <- jntools::add_slash(blast_results_folder)
+  blast_results_folder <- fs::path_abs(blast_results_folder)
   
   # read all blast results
   blast_results <- 
-    list.files(blast_results_folder, pattern = blast_results_ending) %>%
-    paste0(blast_results_folder, .) %>%
+    list.files(blast_results_folder, pattern = blast_results_ending, full.names = TRUE) %>%
     map(read_tsv_with_file_name, col_names = outfmt6_headers) %>%
     map(~arrange(.x, evalue, desc(bitscore)))
   
