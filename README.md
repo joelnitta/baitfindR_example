@@ -125,7 +125,7 @@ nohup Rscript make.R > make.log 2>&1 &
 exit
 ```
 
-You will know the plan is finished running when the report (`report.html`) is successfully compiled. This takes 3-4 hours with the example dataset.
+You will know the plan is finished running when the report (`report.html`) is successfully compiled. This takes 1-2 hours with the example dataset.
 
 Clean up the container when you're done:
 
