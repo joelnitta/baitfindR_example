@@ -44,11 +44,6 @@ source("R/example_data.R")
 source("R/main_plan.R")
 
 ### Download and pre-process example data
-# data() can't be run from within a drake plan, so write out example data as
-# rds first.
-data(example_transcriptomes, package = "baitfindR")
-saveRDS(example_transcriptomes, "data_raw/example_transcriptomes.rds")
-
 make(example_data_plan)
 
 ### Run analyses
