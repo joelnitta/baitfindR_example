@@ -94,5 +94,5 @@ example_transcriptomes <-
     ~ downsize_transcriptome(., keep_frac = keep_frac)
   )
 
-saveRDS(example_transcriptomes, here::here("data/example_transcriptomes.RDS"))
+saveRDS(example_transcriptomes, here::here("data_raw/example_transcriptomes.RDS"))
 ```
