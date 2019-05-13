@@ -35,6 +35,9 @@ codes <- baitfindR::onekp_data$code
 # Specify outgroup
 outgroup <- "FQGQ"
 
+# Set fraction for randomly downsizing transcriptomes (10%)
+keep_frac = 0.10
+
 # Values to use for mcl I value and Y&S hit-frac-cutoff
 my_hit_frac <- 0.4
 my_i_value <- 2

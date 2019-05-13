@@ -16,7 +16,7 @@ transcriptomes_plan <- drake_plan(
   # Downsize each to 10% of original size
   downsize = downsize_transcriptome(
     file = file_in("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2"),
-    keep_frac = 0.10
+    keep_frac = keep_frac
   ),
   
   # Write out downsized transcriptomes to data folder
