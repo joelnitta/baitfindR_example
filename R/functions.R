@@ -16,7 +16,7 @@ make_download_table <- function(url = "http://www.onekp.com/public_data.html") {
   tbls_xml[[1]] %>% 
     tibble::as_tibble() %>%
     dplyr::mutate_all(as.character) %>%
-    dplyr::mutate(assembly_link = map_chr(links, xml_attrs)) %>%
+    dplyr::mutate(assembly_link = map_chr(links, xml2::xml_attrs)) %>%
     dplyr::select(code = `1kP_Code`, assembly_link)
 }
 
