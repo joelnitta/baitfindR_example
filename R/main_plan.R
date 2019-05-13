@@ -251,7 +251,7 @@ sort_homologs_orthologs <- drake_plan(
 mask_genes <- drake_plan (
   
   # Find introns in reference genomes
-  introns = find_bed_regions (
+  introns = baitfindR::find_bed_regions (
     gff3_file = get_gff3("genome_list"),
     genome_file = get_genome("genome_list"),
     source_select = get_sources("genome_list"),
@@ -267,14 +267,14 @@ mask_genes <- drake_plan (
   ),
   
   # Mask introns in reference genomes
-  masked_genome = mask_regions_in_fasta(
+  masked_genome = baitfindR::mask_regions_in_fasta(
     bed_file = file_in("06_intron_masking/genome_list_introns"),
     fasta_file = get_genome("genome_list"),
     out_fasta_file = file_out("06_intron_masking/genome_list_masked")
   ),
   
   # Extract intron-masked genes from genomes
-  masked_genes = extract_regions_from_fasta(
+  masked_genes = baitfindR::extract_regions_from_fasta(
     bed_file = file_in("06_intron_masking/genome_list_genes"),
     fasta_file = file_in("06_intron_masking/genome_list_masked"),
     out_fasta_file = file_out("06_intron_masking/genome_list_masked_genes")
