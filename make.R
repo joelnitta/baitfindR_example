@@ -32,11 +32,6 @@ codes <- baitfindR::onekp_data$code
 # Specify outgroup
 outgroup <- "FQGQ"
 
-# For the example data, to what fraction should transcriptomes 
-# be down-sized? e.g., 0.05 = 5%
-trim_frac <- 0.25
-set.seed(9542) # for reproducibility
-
 # Values to use for mcl I value and Y&S hit-frac-cutoff
 my_hit_frac <- 0.4
 my_i_value <- 2
