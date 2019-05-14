@@ -329,7 +329,7 @@ mask_and_filter_baits <- drake_plan (
     depends2 = ortholog_fasta),
   
   # Write out unaligned, family-filtered baits
-  family_filtered_baits_out = write_fasta_files(
+  family_filtered_baits_out = baitfindR::write_fasta_files(
     fasta_list = family_filtered_baits,
     out_dir = "06_intron_masking/taxonomy_filtered"),
   
@@ -389,7 +389,7 @@ mask_and_filter_baits <- drake_plan (
   final_baits_data = filter_alignments (combined_alignments_data),
   
   # Write out final baits
-  final_baits_out = write_fasta_files(
+  final_baits_out = baitfindR::write_fasta_files(
     fasta_list = final_baits_data$alignment,
     fasta_names = final_baits_data$bait_id,
     ext = "fasta",
