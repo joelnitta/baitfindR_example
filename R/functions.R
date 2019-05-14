@@ -237,44 +237,6 @@ realign_with_best_hits <- function (blast_filtered_folder,
     rlang::set_names(blast_filtered_alignment_names)
 }
 
-# Run blast on all files with the same ending in a folder
-# Outputs to same folder containing input files (but we could change this)
-blastn_list <- function (fasta_folder, fasta_ending, database, wd, outfmt, other_args = NULL, overwrite = FALSE, get_hash = TRUE, ...) {
-  
-  fasta_folder <- fs::path_abs(fasta_folder)
-  
-  search_terms <- "\\.outfmt6$"
-  
-  # optional: delete all previous output written in this folder
-  if (isTRUE(overwrite)) {
-    files_to_delete <- list.files(fasta_folder, pattern = search_terms, full.names = TRUE)
-    if (length(files_to_delete) > 0) {
-      fs::file_delete(files_to_delete)
-    }
-  }
-  
-  # list all fasta files in folder
-  fasta_files <- list.files(fasta_folder, pattern = fasta_ending, full.names = TRUE)
-
-  # make list of results to write
-  results_list <- fs::path(fasta_files, ext = "outfmt6")
-  
-  # loop over lists
-  purrr::walk2(
-    fasta_files, 
-    results_list,
-    ~ blast_n(query = .x, out_file = .y, wd = wd, database = database, outfmt = outfmt, other_args = other_args)
-  )
-  
-  # optional: return hash of results
-  if (isTRUE(get_hash)) {
-    output <- list.files(fasta_folder, pattern = search_terms, full.names = TRUE)
-    output <- if (length(output) > 0) {unlist(lapply(output, readr::read_file))} else {output}
-    hash <- digest::digest(output)
-    return(hash)
-  }
-}
-
 # Extract blast hits
 extract_blast_hits <- function (blast_results_folder, blast_results_ending, blast_db, out_dir, ...) {
   

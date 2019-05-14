@@ -350,11 +350,11 @@ mask_and_filter_baits <- drake_plan (
     depends = aligned_baits),
   
   # Blast clean, aligned baits against intron-masked genes
-  blast_baits = blastn_list(
+  blast_baits = blast_n_list(
     fasta_folder = "06_intron_masking/taxonomy_filtered",
-    fasta_ending = "\\.aln-cln$",
-    database = "masked_genes",
-    wd = "06_intron_masking",
+    fasta_pattern = "\\.aln-cln$",
+    database_path = "06_intron_masking/masked_genes",
+    out_ext = "outfmt6",
     outfmt = "6 qseqid qlen sseqid slen frames pident nident length mismatch gapopen qstart qend sstart send evalue bitscore",
     overwrite = TRUE,
     depends = cleaned_aligned_baits
