@@ -32,7 +32,7 @@ Intermediate output files are saved to the numbered folders (`01_translation`, `
 
 ## Docker image
 
-[A docker image](https://hub.docker.com/r/joelnitta/baitfindr) is provided to run the code. This is the preferred method, as there are many dependencies which are otherwise tedious to install, and may not even work correctly if versions have changed.
+[A docker image](https://hub.docker.com/r/joelnitta/baitfindr) is provided to run the code. This is the preferred method, as there are many dependencies which are otherwise tedious to install, and may not work correctly if versions have changed.
 
 To use the image, first [install Docker](https://docs.docker.com/install/).
 
@@ -79,7 +79,7 @@ Run `make.R` by either running `Rscript make.R` from the command line, or openin
 
 Clone the repo as above.
 
-Launch the container (where `/path/to/repo` is the full path to the cloned repository on your machine, e.g. `/home/me/baitfindR_simple`):
+Launch the container (where `/path/to/repo` is the full path to the cloned repository on your machine, e.g. `/home/me/baitfindR_example`):
 
 ```
 docker run -it -v /path/to/repo:/home/rstudio/baitfindR_example joelnitta/baitfindr bash
@@ -139,7 +139,7 @@ Basic input values are defined in `make.R`:
 
 - `codes` is a vector of 4-letter codes used to identify [1KP transcriptome samples](http://www.onekp.com/samples/list.php). You may change this to any combination of valid 1KP codes. Default = eight fern transcriptomes.
 
-- `outgroup` is the code for the outgroup taxon.
+- `outgroup` is the code for the outgroup taxon. Default = FQGQ (*Polystichum acrostichoides*).
 
 - `keep_frac` is the fraction to which the transcriptomes will be randomly downsized prior to analysis, to keep runtimes short for this example. Default = 10%.
 
