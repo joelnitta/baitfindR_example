@@ -143,7 +143,7 @@ run_mcl <- drake_plan (
     blast_results = file_in("02_clustering/all.rawblast"),
     hit_fraction_cutoff = my_hit_frac,
     outfile = file_out("02_clustering/all.rawblast.hit-frac`my_hit_frac`.minusLogEvalue")
-    ),
+  ),
   
   # Run mcl
   mcl_clusters = baitfindR::mcl(
@@ -152,7 +152,7 @@ run_mcl <- drake_plan (
     e_value = 5,
     other_args = c("--abc", "-te", "2"),
     mcl_output = file_out("02_clustering/hit-frac`my_hit_frac`_I`my_i_value`_e5")
-    ),
+  ),
   
   # Write fasta files for each cluster from mcl output to 03_clusters/
   fasta_clusters = baitfindR::write_fasta_files_from_mcl(
@@ -162,8 +162,8 @@ run_mcl <- drake_plan (
     outdir = "03_clusters",
     get_hash = TRUE,
     overwrite = TRUE
-    ), 
-
+  ), 
+  
   # Align each cluster, trim alignment, and infer a tree
   # ("basic trees" which will be further pruned downstream)
   basic_trees = baitfindR::fasta_to_tree(
@@ -361,42 +361,58 @@ mask_and_filter_baits <- drake_plan (
     depends = cleaned_aligned_baits
   ),
   
-  # Extract top blast hit for each bait
+  # Extract top blast hit for each bait.
+  # Results will be written to 06_intron_masking/blast_filtered.
   best_hits = baitfindR::extract_blast_hits(
     blast_results_dir = "06_intron_masking/taxonomy_filtered/",
     blast_results_pattern = "\\.outfmt6$",
     blast_cols = c("qseqid","qlen","sseqid","slen","evalue","bitscore"),
     database_path = "06_intron_masking/masked_genes",
     out_dir = "06_intron_masking/blast_filtered/",
+    out_ext = "bestmatch",
     depends = blast_baits
   ),
   
   # Re-align filtered baits with top blast hits
-  combined_alignments = realign_with_best_hits(
-    blast_filtered_folder = "06_intron_masking/blast_filtered",
-    taxonomy_filtered_folder = "06_intron_masking/taxonomy_filtered",
+  combined_alignments = baitfindR::realign_with_best_hits(
+    best_hits_dir = "06_intron_masking/blast_filtered",
+    best_hits_pattern = "\\.bestmatch$",
+    fasta_dir = "06_intron_masking/taxonomy_filtered",
+    fasta_pattern = "\\.fa$",
     depends = best_hits
   ),
   
   # Fill-in introns and remove outgroup
-  combined_alignments_filled = fill_introns_loop (
-    alignment_list = combined_alignments,
-    outgroup = outgroup
+  combined_alignments_filled = purrr::map (
+    combined_alignments,
+    ~ baitfindR::fill_introns(
+      ., 
+      ref_pattern = "Sacu|Azfi|1|2|3|4|5", 
+      outgroup = outgroup, 
+      trim_outgroup = TRUE)
   ),
   
   # Calculate summary statistics for alignments
-  combined_alignments_data = assemble_bait_data (combined_alignments_filled),
+  combined_alignments_data = map_df(
+    combined_alignments_filled, 
+    baitfindR::calculate_alignment_stats, 
+    include_aln = TRUE,
+    .id = "bait_id"),
   
   # Filter alignments to get final baits
-  final_baits_data = filter_alignments (combined_alignments_data),
-  
+  # Here we filter by min. number of introns > 1,
+  # and choosing top five ranked by % pars. inform. characters
+  final_baits_data = filter(combined_alignments_data, num_introns > 1) %>%
+    arrange(desc(pars_inf)) %>%
+    slice(1:5),
+
   # Write out final baits
   final_baits_out = baitfindR::write_fasta_files(
     fasta_list = final_baits_data$alignment,
     fasta_names = final_baits_data$bait_id,
     ext = "fasta",
     out_dir = "07_baits")
-
+  
 )
 
 # Output report
@@ -407,28 +423,29 @@ write_report <- drake_plan(
     output_file = file_out("report.html"),
     quiet = TRUE))
 
-main_plan <- bind_plans(build_blastp_db, 
-                        run_transdecoder, 
-                        concatenate_cdhitest, 
-                        run_allbyall_blast, 
-                        concatenate_allbyall_blast, 
-                        run_mcl,
-                        sort_homologs_orthologs,
-                        mask_genes,
-                        concatenate_masked_genes,
-                        make_masked_genes_blast_db,
-                        mask_and_filter_baits,
-                        write_report)
+main_plan <- bind_plans(
+  build_blastp_db, 
+  run_transdecoder, 
+  concatenate_cdhitest, 
+  run_allbyall_blast, 
+  concatenate_allbyall_blast, 
+  run_mcl,
+  sort_homologs_orthologs,
+  mask_genes,
+  concatenate_masked_genes,
+  make_masked_genes_blast_db,
+  mask_and_filter_baits,
+  write_report)
 
 rm(build_blastp_db, 
-    run_transdecoder, 
-    concatenate_cdhitest, 
-    run_allbyall_blast, 
-    concatenate_allbyall_blast, 
-    run_mcl,
-    sort_homologs_orthologs,
-    mask_genes,
-    concatenate_masked_genes,
-    make_masked_genes_blast_db,
-    mask_and_filter_baits,
-    write_report)
+   run_transdecoder, 
+   concatenate_cdhitest, 
+   run_allbyall_blast, 
+   concatenate_allbyall_blast, 
+   run_mcl,
+   sort_homologs_orthologs,
+   mask_genes,
+   concatenate_masked_genes,
+   make_masked_genes_blast_db,
+   mask_and_filter_baits,
+   write_report)
