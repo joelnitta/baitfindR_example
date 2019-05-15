@@ -41,72 +41,6 @@ trim_proteome <- function (proteome) {
   return(trimmed_proteome)
 }
 
-# Report functions --------------------------------------------------------
-
-# Calculate length, mean coverage, and number of sequences in each alignment for all alignments
-# in a folder (for plan_01 only)
-calculate_alignment_summary_stats <- function (folder, filter_term = "fa.mafft.aln-cln$", ingroup = NULL) {
-  
-  require(purrr)
-  require(ape)
-  require(ips)
-  require(here)
-  require(stringr)
-  
-  # for easier pasting
-  folder <- fs::path_abs(folder)
-  
-  # get list of alignments in folder
-  alignment_files <- list.files(folder, pattern = filter_term, full.names = TRUE)
-  
-  # read in all alignments as list
-  alignments <- purrr::map(alignment_files, ape::read.FASTA)
-  
-  # convert to matrix
-  alignments <- purrr::map(alignments, as.matrix)
-  
-  # optionally trim to only ingroup taxa
-  if (!(is.null(ingroup))) {
-    alignments <- lapply (alignments, function (x) x[rownames(x) %in% ingroup,])
-    # trim all out "empty" columns (those containing only missing data)
-    alignments <- map (alignments, ips::deleteEmptyCells, quiet=TRUE)
-  }
-  
-  # calculate length of each alignment
-  length <- purrr::map_dbl(alignments, ncol)
-  
-  # function to calculate percent of each sequence in alignment that is non-gap characters
-  calc_coverage <- function (align) {
-    nongap_seq_length <- apply (as.character(align), 1, function (x) length(x[grep("n|N|-", x, invert=TRUE)]))
-    seq_coverage <- nongap_seq_length/ncol(align)
-    return(seq_coverage)
-  }
-  
-  # use above function to calculate percentage coverage for ALL sequences in ALL alignments
-  coverage <- unlist(lapply(alignments, calc_coverage))
-  
-  # function to calculate MEAN percent of each sequence in alignment that is non-gap characters for each alignment
-  calc_mean_coverage <- function (align) {
-    seq_length <- apply (as.character(align), 1, function (x) length(x[grep("n|N|-", x, invert=TRUE)]))
-    seq_coverage <- seq_length/ncol(align)
-    mean_seq_coverage <- mean(unlist(seq_coverage))
-    return(mean_seq_coverage)
-  }
-  
-  # use above function to calculate MEAN percentage coverage for each alignment
-  mean_coverage <- purrr::map_dbl(alignments, calc_mean_coverage)
-  
-  # calculate number of sequences (in ingroup) per alignment
-  num_seqs <- unlist(lapply(alignments, nrow))
-  
-  # make list of data frames
-  # results <- list(length, coverage, mean_coverage, num_seqs)
-  results <- list(length = length, mean_coverage = mean_coverage, num_seqs = num_seqs, folder = rep(folder, length(alignment_files)))
-  
-  return(results)
-  
-}
-
 # Genome masking ----------------------------------------------------------
 
 # Functions to help standardize names in plan 
@@ -155,51 +89,6 @@ rename_arabidopsis_genome <- function (fasta_in, fasta_out, ...) {
   write.FASTA(arabidopsis_genome, fasta_out)
 }
 
-# General-purpose ---------------------------------------------------------
-
-#' Make a bash script
-#'
-#' The main reason for this is to call other
-#' programs in different working directories
-#' without changing R's wd. processx::run()
-#' can also do this, but is very picky about
-#' which programs it will execute.
-#' 
-#' @param script_file Path to write script file
-#' @param command Command to run
-#' @param arguments Arguments for command. If > 1 argument, the same
-#' command will be run each time.
-#' @param wd Working directory to run script
-#' @param ... 
-#'
-make_bash_script <- function(script_file, command, arguments, wd = NULL, ...) {
-  
-  sink(file = script_file, type = "output")
-  
-  cat("#!/bin/bash\n")
-  if (!(is.null(wd))) {cat(paste("cd", wd, "\n"))}
-  
-  # Assume we are running the same command, but may have multiple calls
-  for (i in 1:length(arguments)) {
-    cat(paste(command, paste(arguments[i], collapse = " "), "\n") )
-  }
-  
-  sink()
-}
-
-# Run a bash script
-run_bash_script <- function (script_file, ...) {
-  system2("bash", script_file)
-}
-
-# function to run cat on files external to R
-cat_ext_files <- function (input, output, wd = NULL, ...) {
-  processx::run("sh", 
-                c("-c",
-                  glue::glue('cat {paste(input, collapse = " ")} > {output}'),
-                  wd))
-}
-
 # blast functions ---------------------------------------------------------
 
 # Re-align filtered baits with top blast hits
@@ -235,38 +124,6 @@ realign_with_best_hits <- function (blast_filtered_folder,
   purrr::map2(blast_filtered_alignments, blast_top_matches, c) %>%
     purrr::map(ips::mafft, path = "/usr/bin/mafft", options = "--adjustdirection") %>%
     rlang::set_names(blast_filtered_alignment_names)
-}
-
-# Extract blast hits
-extract_blast_hits <- function (blast_results_folder, blast_results_ending, blast_db, out_dir, ...) {
-  
-  out_dir <- fs::path_abs(out_dir)
-  
-  # Make list of blastdbcmd calls to extract top blast hits
-  calls <- 
-    # read in and filter blast results
-    filter_blast_results(
-      blast_results_folder = blast_results_folder,
-      blast_results_ending = blast_results_ending) %>%
-    # only keep best blast hit from each result
-    map_df(slice, 1) %>%
-    # format the command to extract the blast hit as a column
-    mutate(command = glue::glue('-db {blast_db} -entry "{sseqid}" > {fs::path(out_dir, file_name)}.bestmatch.fasta')) %>%
-    pull(command)
-  
-  make_bash_script(script_file = "extract_blast.sh",
-                   command = "blastdbcmd",
-                   arguments = calls)
-  
-  run_bash_script("extract_blast.sh")
-  file.remove("extract_blast.sh")
-}
-
-# Append the file name as a column when reading in a tsv
-read_tsv_with_file_name <- function (x, ...) {
-  file <- str_split(x, "/") %>% map_chr(length(.[[1]]))
-  read_tsv(x, ...) %>%
-    mutate(file_name = file)
 }
 
 # Filter blast results
