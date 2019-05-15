@@ -32,7 +32,7 @@ Intermediate output files are saved to the numbered folders (`01_translation`, `
 
 ## Docker image
 
-A docker image is provided to run the code. This is the preferred method, as there are many dependencies which are otherwise tedious to install, and may not even work correctly if versions have changed.
+[A docker image](https://hub.docker.com/r/joelnitta/baitfindr) is provided to run the code. This is the preferred method, as there are many dependencies which are otherwise tedious to install, and may not even work correctly if versions have changed.
 
 To use the image, first [install Docker](https://docs.docker.com/install/).
 
