@@ -349,23 +349,25 @@ mask_and_filter_baits <- drake_plan (
     overwrite = TRUE,
     depends = aligned_baits),
   
-  # Blast clean, aligned baits against intron-masked genes
-  blast_baits = blast_n_list(
+  # Blast clean, aligned baits against intron-masked genes.
+  # Results will be written to 06_intron_masking/taxonomy_filtered.
+  blast_baits = baitfindR::blast_n_list(
     fasta_folder = "06_intron_masking/taxonomy_filtered",
     fasta_pattern = "\\.aln-cln$",
     database_path = "06_intron_masking/masked_genes",
     out_ext = "outfmt6",
-    outfmt = "6 qseqid qlen sseqid slen frames pident nident length mismatch gapopen qstart qend sstart send evalue bitscore",
+    outfmt = "6 qseqid qlen sseqid slen evalue bitscore",
     overwrite = TRUE,
     depends = cleaned_aligned_baits
   ),
   
   # Extract top blast hit for each bait
-  best_hits = extract_blast_hits(
-    blast_db = "06_intron_masking/masked_genes",
+  best_hits = baitfindR::extract_blast_hits(
+    blast_results_dir = "06_intron_masking/taxonomy_filtered/",
+    blast_results_pattern = "\\.outfmt6$",
+    blast_cols = c("qseqid","qlen","sseqid","slen","evalue","bitscore"),
+    database_path = "06_intron_masking/masked_genes",
     out_dir = "06_intron_masking/blast_filtered/",
-    blast_results_folder = "06_intron_masking/taxonomy_filtered/",
-    blast_results_ending = "\\.outfmt6$",
     depends = blast_baits
   ),
   
