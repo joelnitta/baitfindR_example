@@ -5,17 +5,9 @@
 # Download and process transcriptomes ----
 transcriptomes_plan <- drake_plan(
 
-  onekp_download_table = make_download_table("http://www.onekp.com/public_data.html"),
-
-  # Download transcriptome assemblies from oneKp data site
-  download = download.file(
-    url = onekp_download_table %>% dplyr::filter(code == "transcriptome__") %>% pull(assembly_link),
-    destfile = file_out("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2")
-  ),
-
-  # Downsize each to 10% of original size
+  # Downsize each transcriptome for testing
   downsize = downsize_transcriptome(
-    file = file_in("data_raw/transcriptome__-SOAPdenovo-Trans-assembly.fa.bz2"),
+    file = file_in("data_raw/transcriptome__"),
     keep_frac = keep_frac
   ),
 
