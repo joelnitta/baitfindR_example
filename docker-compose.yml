@@ -1,11 +1,10 @@
 version: "3"
 services:
-  analysis:
+  drake:
     image: joelnitta/baitfindr
     ports:
       - "8787:8787"
     volumes:
-      - ".:/home/rstudio/baitfindR_simple"
+      - ".:/home/rstudio/baitfindR_example"
     environment:
-      PASSWORD: "cleverpw"
-      ROOT: "true"
+      DISABLE_AUTH: "true"

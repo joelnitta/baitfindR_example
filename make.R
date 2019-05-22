@@ -1,8 +1,8 @@
 # baitfindR_simple
 
-# An example project showing how baitfindR can be combined with drake to 
+# An example project showing how baitfindR can be combined with drake to
 # automate the Yang and Smith (2014) (hereafter, Y&S) workflow to find
-# candidate baits for sequence capture from a set of transcriptomes and 
+# candidate baits for sequence capture from a set of transcriptomes and
 # reference genomes.
 
 # Set working directory
@@ -22,26 +22,21 @@ source("R/functions.R")
 
 ### Define basic input values
 
-# Vector of transcriptome samples. These are all cheilanthoid ferns.
-codes <- c("ALCS", "ALLE", "ASCG", "ADSH", "CHCS", "CHNI", "DCDT", "GAAG", "PTSG", "ZXJO", "GSXD", "YCKE", "XDDT")
+# Set seed for reproducibility
+set.seed(5394)
+
+# Vector of 4-letter transcriptome codes.
+# These will be downloaded from the 1KP website.
+# Here we use a subset of eupolypod II ferns including
+# species in Aspleniaceae, Athyriaceae, and Woodsiaceae
+# as the ingroup, and a single eupolypod I fern as the outgroup
+codes <- baitfindR::onekp_data$code
 
 # Specify outgroup
-outgroup <- "ADSH"
+outgroup <- "FQGQ"
 
-# Specify taxonomy table to use for filtering
-cheilanthoid_taxonomy <- tibble(
-  code = codes,
-  group = rep("in", length(codes)),
-  family = rep("pteridaceae", length(codes))
-) %>%
-  mutate(group = case_when(
-    code == "ADSH" ~ "out",
-    TRUE ~ "in"
-  ))
-
-# For testing, to what fraction should transcriptomes 
-# be down-sized? e.g., 0.05 = 5%
-trim_frac <- 0.10
+# Set fraction for randomly downsizing transcriptomes (10%)
+keep_frac = 0.10
 
 # Values to use for mcl I value and Y&S hit-frac-cutoff
 my_hit_frac <- 0.4
@@ -55,13 +50,13 @@ source("R/example_data.R")
 source("R/main_plan.R")
 
 ### Download and pre-process example data
-make(example_data)
+make(example_data_plan)
 
 ### Run analyses
 #
 # `jobs` is set to 1, but may be increased up to the number of
-# cores (CPUs) available. 
-# 
+# cores (CPUs) available.
+#
 # Check the number of cores available with this command:
 # future::availableCores()
 
