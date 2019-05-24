@@ -35,8 +35,13 @@ codes <- baitfindR::onekp_data$code
 # Specify outgroup
 outgroup <- "FQGQ"
 
+# Specify taxonomy dataframe. For details about how this 
+# data frame should be formatted, run ?baitfindR::filter_fasta
+# and see the `taxonomy_data` argument.
+taxonomy_data <- baitfindR::onekp_data
+
 # Set fraction for randomly downsizing transcriptomes (10%)
-keep_frac = 0.10
+keep_frac <- 0.10
 
 # Values to use for mcl I value and Y&S hit-frac-cutoff
 my_hit_frac <- 0.4
