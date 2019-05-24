@@ -3,20 +3,17 @@
 # drake plan to download and pre-process data for this example analysis
 
 # Download and process transcriptomes ----
+# Downsize transcriptomes
+# for testing
 transcriptomes_plan <- drake_plan(
-
-  # Downsize each transcriptome for testing
-  downsize = downsize_transcriptome(
-    file = file_in("data_raw/transcriptome__"),
-    keep_frac = keep_frac
-  ),
-
-  # Write out downsized transcriptomes to data folder
-  small_transcriptome = ape::write.FASTA(
-    x = downsize_transcriptome__,
-    file = file_out("data/transcriptome__")
+  
+  # This assumes the raw transcriptomes have already been downloaded to data_raw
+  # Downsize transcriptomes
+  downsize = downsize_simple(
+    full_file = here("data_raw/transcriptome__"), 
+    keep_frac = keep_frac,
+    path = here("data/transcriptome__")
   )
-
 ) %>%
   evaluate_plan(rules = list(transcriptome__ = codes))
 
