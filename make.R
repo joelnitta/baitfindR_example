@@ -67,4 +67,4 @@ make(example_data_plan)
 # Check the number of cores available with this command:
 # future::availableCores()
 
-make(main_plan, jobs = 1)
+make(main_plan, jobs = 4)
